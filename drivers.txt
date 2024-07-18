@@ -1,0 +1,604 @@
+Microsoft PnP Utility
+
+Published Name:     oem13.inf
+Original Name:      alderlakepch-psystem.inf
+Provider Name:      INTEL
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/18/1968 10.1.36.7
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem8.inf
+Original Name:      detectionverificationdrv.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     06/16/2023 1.0.3045.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem18.inf
+Original Name:      dtt_ext.inf
+Provider Name:      Intel
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {bc7814a1-a80e-44b3-87c6-652eac676387}
+Driver Version:     06/23/2023 9.0.11400.36441
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem69.inf
+Original Name:      etd.inf
+Provider Name:      ELAN
+Class Name:         Mouse
+Class GUID:         {4d36e96f-e325-11ce-bfc1-08002be10318}
+Driver Version:     09/14/2022 22.2.34.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem48.inf
+Original Name:      etdhcf.inf
+Provider Name:      ELAN HID Device
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     09/14/2022 22.2.34.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem14.inf
+Original Name:      gna.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/26/2021 3.0.0.1457
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem41.inf
+Original Name:      hdbusext.inf
+Provider Name:      Intel Corporation
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {69cb4edd-bafe-4f9a-9135-c1f284d6860d}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem27.inf
+Original Name:      hdx_hpext_apot_ad98_g.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {a9fae730-fe66-4d56-a160-29263e8ff026}
+Driver Version:     01/16/2024 6.0.9632.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem28.inf
+Original Name:      hdx_hpext_apot_cnb_general-66_omni.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {8232b627-30b1-4f3c-84c6-e103bd6feccb}
+Driver Version:     01/16/2024 6.0.9632.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem24.inf
+Original Name:      hdx_hpext_hsa.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {9a4a8283-35d3-4a69-aa19-aa29e9046185}
+Driver Version:     01/16/2024 6.0.9632.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem25.inf
+Original Name:      hdx_hpext_sr_rtkgen4.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {c3a63edd-2d27-4b66-b155-5e94b43d926a}
+Driver Version:     01/16/2024 6.0.9632.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem50.inf
+Original Name:      heci.inf
+Provider Name:      Intel
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     09/06/2023 2336.5.2.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem63.inf
+Original Name:      hpanalyticsext.inf
+Provider Name:      HP Inc.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {dbf3223d-8a64-4dae-903e-e2fad8d45bc8}
+Driver Version:     10/31/2018 1.6.817.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem11.inf
+Original Name:      hpcustomcapdriver.inf
+Provider Name:      HP Inc.
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     09/09/2021 1.37.2536.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem62.inf
+Original Name:      hpcustomcapext.inf
+Provider Name:      HP Inc.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {30e20916-51cc-469c-ad2d-eaeee7624b3b}
+Driver Version:     10/02/2018 1.5.750.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem22.inf
+Original Name:      ialpss2_gpio2_adl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/13/2023 30.100.2328.32
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem12.inf
+Original Name:      ialpss2_i2c_adl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/13/2023 30.100.2328.32
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem20.inf
+Original Name:      ialpss2_spi_adl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/13/2023 30.100.2328.32
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem21.inf
+Original Name:      ialpss2_uart2_adl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/13/2023 30.100.2328.32
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem45.inf
+Original Name:      iigd_ext.inf
+Provider Name:      Intel Corporation
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {448de0f0-cee1-4192-b144-2fe727cfda3f}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem1.inf
+Original Name:      intcaudiobus.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem67.inf
+Original Name:      intcdmicextc_hp_00030000.inf
+Provider Name:      Realtek
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {583e56d3-bdef-4e1b-ab94-c847a797da66}
+Driver Version:     01/04/2024 9.21.3690.203
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem29.inf
+Original Name:      intcdmicextt_hp_103c8b6c.inf
+Provider Name:      Realtek
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {1af2794d-f721-4bc1-aa31-6e2e5856bca4}
+Driver Version:     01/16/2024 9.21.3690.598
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem30.inf
+Original Name:      intcdmicext_hp.inf
+Provider Name:      Realtek
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {12d32d00-c5bf-4a3b-a030-eba5ab6fd0dd}
+Driver Version:     01/16/2024 9.21.3690.598
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem2.inf
+Original Name:      intcoed.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem65.inf
+Original Name:      intcoed_oemlibpath.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {2a1a2071-d20a-43f8-aa82-b6dd10133949}
+Driver Version:     10/23/2023 10.35.200.56
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem9.inf
+Original Name:      intcsdwbus.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem66.inf
+Original Name:      intelmvaextension.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {f9c846c2-6b27-ff92-39f8-96fe00e470a5}
+Driver Version:     06/16/2023 1.0.3045.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem15.inf
+Original Name:      ipf_acpi.inf
+Provider Name:      Intel
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     06/26/2023 1.0.11400.36477
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem17.inf
+Original Name:      ipf_cpu.inf
+Provider Name:      Intel
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     06/26/2023 1.0.11400.36477
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem16.inf
+Original Name:      ipf_ef_ext.inf
+Provider Name:      Intel
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {002c4697-5b34-4222-b9c9-6277b0869281}
+Driver Version:     06/27/2023 2.1.10100.37
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem49.inf
+Original Name:      ptpfilter.inf
+Provider Name:      ELAN
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     09/14/2022 22.2.34.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem64.inf
+Original Name:      raptorlakesystem.inf
+Provider Name:      INTEL
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/18/1968 10.1.49.10
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem60.inf
+Original Name:      seapo64ext.inf
+Provider Name:      Sound Research Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {ce55c9e8-5ddf-4346-9c42-6b72aa38ef7c}
+Driver Version:     02/26/2024 17.8.94.4022
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem59.inf
+Original Name:      systemfirmware.inf
+Provider Name:      HP Inc.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     02/15/2023 15.2.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem72.inf
+Original Name:      unifhid.inf
+Provider Name:      Logitech
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     08/24/2021 1.10.80.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem38.inf
+Original Name:      cui_dch.inf
+Provider Name:      Intel Corporation
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem55.inf
+Original Name:      dal.inf
+Provider Name:      Intel
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     07/11/2023 1.44.2023.710
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem57.inf
+Original Name:      dtt_sw.inf
+Provider Name:      Intel
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     06/23/2023 9.0.11400.36441
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem26.inf
+Original Name:      hdxssthpnb.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     01/16/2024 6.0.9632.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem68.inf
+Original Name:      hpanalyticscomp.inf
+Provider Name:      HP Inc.
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     04/22/2021 4.2.1744.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem52.inf
+Original Name:      hpaudiocenterhsa.inf
+Provider Name:      Realtek
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     01/16/2024 11.0.6000.322
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem70.inf
+Original Name:      hpcustomcapcomp.inf
+Provider Name:      HP Inc.
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     03/02/2024 1.65.3659.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem53.inf
+Original Name:      iclsclient.inf
+Provider Name:      Intel
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     10/17/2023 1.70.101.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem39.inf
+Original Name:      igcc_dch.inf
+Provider Name:      Intel Corporation
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem37.inf
+Original Name:      iigd_dch.inf
+Provider Name:      Intel Corporation
+Class Name:         Display
+Class GUID:         {4d36e968-e325-11ce-bfc1-08002be10318}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem7.inf
+Original Name:      intcbtau.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem44.inf
+Original Name:      intcdaud.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     05/18/2023 11.2.0.12
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem6.inf
+Original Name:      intcdmic.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem4.inf
+Original Name:      intcsdw.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem5.inf
+Original Name:      intcsst.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem3.inf
+Original Name:      intcusb.inf
+Provider Name:      Intel(R) Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/13/2023 10.29.0.9947
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem47.inf
+Original Name:      ipf_ef_sw.inf
+Provider Name:      Intel
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     06/27/2023 2.1.10100.37
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem51.inf
+Original Name:      mewmiprov.inf
+Provider Name:      Intel
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     09/20/2023 2338.5.1.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem40.inf
+Original Name:      mshdadac.inf
+Provider Name:      Intel Corporation
+Class Name:         MEDIA
+Class GUID:         {4d36e96c-e325-11ce-bfc1-08002be10318}
+Driver Version:     01/18/2024 31.0.101.5186
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem19.inf
+Original Name:      netrtwlane601.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Net
+Class GUID:         {4d36e972-e325-11ce-bfc1-08002be10318}
+Driver Version:     01/17/2024 6001.15.149.100
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem56.inf
+Original Name:      ovwrap2.inf
+Provider Name:      Realtek
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     11/20/2023 11.0.6000.37
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem71.inf
+Original Name:      pangpd.inf
+Provider Name:      PaloAltoNetworks
+Class Name:         Net
+Class GUID:         {4d36e972-e325-11ce-bfc1-08002be10318}
+Driver Version:     03/02/2023 16.15.20.869
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem10.inf
+Original Name:      prnms006.inf
+Provider Name:      Microsoft
+Class Name:         Printer
+Class GUID:         {4d36e979-e325-11ce-bfc1-08002be10318}
+Class Version:      4.0
+Driver Version:     11/29/2016 16.0.7629.4000
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem0.inf
+Original Name:      prnms009.inf
+Provider Name:      Microsoft
+Class Name:         Printer
+Class GUID:         {4d36e979-e325-11ce-bfc1-08002be10318}
+Class Version:      4.0
+Driver Version:     06/21/2006 10.0.22621.1
+Signer Name:        Microsoft Windows
+
+Published Name:     oem54.inf
+Original Name:      realtekservice.inf
+Provider Name:      Realtek
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     01/17/2024 1.0.708.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem46.inf
+Original Name:      realtekuapo2.inf
+Provider Name:      Realtek
+Class Name:         AudioProcessingObject
+Class GUID:         {5989fce8-9cd0-467d-8a6a-5419e31529d4}
+Driver Version:     01/16/2024 13.309.1165.249
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem23.inf
+Original Name:      rtkfilter.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Bluetooth
+Class GUID:         {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Driver Version:     01/22/2024 1.10.1061.3016
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem58.inf
+Original Name:      rtux64w10.inf
+Provider Name:      Realtek
+Class Name:         Net
+Class GUID:         {4d36e972-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/19/2015 10.5.1019.2015
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem61.inf
+Original Name:      seapo64.inf
+Provider Name:      Sound Research Corp.
+Class Name:         AudioProcessingObject
+Class GUID:         {5989fce8-9cd0-467d-8a6a-5419e31529d4}
+Driver Version:     02/04/2024 2.0.11.46
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem36.inf
+Original Name:      tmactmon.inf
+Provider Name:      Trend Micro Inc.
+Class Name:         AntiVirus
+Class GUID:         {b1d1a169-c54f-4379-81db-bee7d88d7454}
+Driver Version:     11/06/2023 2.98.0.1972
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem34.inf
+Original Name:      tmcomm.inf
+Provider Name:      Trend Micro Inc.
+Class Name:         AntiVirus
+Class GUID:         {b1d1a169-c54f-4379-81db-bee7d88d7454}
+Driver Version:     09/27/2023 8.20.0.1112
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem31.inf
+Original Name:      tmeevw.inf
+Provider Name:      Trend Micro
+Class Name:         NetService
+Class GUID:         {4d36e974-e325-11ce-bfc1-08002be10318}
+Driver Version:     05/04/2023 18.13.0.223
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem32.inf
+Original Name:      tmel.inf
+Provider Name:      Trend Micro Inc.
+Class Name:         AntiVirus
+Class GUID:         {b1d1a169-c54f-4379-81db-bee7d88d7454}
+Driver Version:     08/18/2022 1.6.0.1101
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem35.inf
+Original Name:      tmevtmgr.inf
+Provider Name:      Trend Micro Inc.
+Class Name:         AntiVirus
+Class GUID:         {b1d1a169-c54f-4379-81db-bee7d88d7454}
+Driver Version:     11/06/2023 2.98.0.1972
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem43.inf
+Original Name:      tmnciesc.inf
+Provider Name:      Trend Micro
+Class Name:         NetService
+Class GUID:         {4d36e974-e325-11ce-bfc1-08002be10318}
+Driver Version:     04/25/2022 20.33.1.544
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem33.inf
+Original Name:      tmumh.inf
+Provider Name:      Trend Micro Inc.
+Class Name:         ActivityMonitor
+Class GUID:         {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Driver Version:     09/14/2023 2.9.0.1084
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
+Published Name:     oem42.inf
+Original Name:      tmwfp.inf
+Provider Name:      Trend Micro
+Class Name:         NetService
+Class GUID:         {4d36e974-e325-11ce-bfc1-08002be10318}
+Driver Version:     05/12/2023 5.83.1101.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+
