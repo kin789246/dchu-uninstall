@@ -9,8 +9,10 @@ pub struct InfMetadata {
     pub signer_name: String,
     pub instance_id: String,
     pub device_description: String,
+    pub extension_id: String,
+    pub parent: String,
+    pub children: Vec<String>,
     pub extension_driver_names: Vec<String>,
-    pub extension_id: String
 }
 
 impl InfMetadata {
@@ -25,8 +27,10 @@ impl InfMetadata {
             signer_name: "".to_string(),
             instance_id: "".to_string(),
             device_description: "".to_string(),
+            extension_id: "".to_string(),
+            parent: "".to_string(),
+            children: Vec::new(),
             extension_driver_names: Vec::new(),
-            extension_id: "".to_string()
         }
     }
 }
