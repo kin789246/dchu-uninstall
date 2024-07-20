@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfMetadata {
     pub published_name: String,
     pub original_name: String,

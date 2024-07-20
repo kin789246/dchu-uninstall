@@ -26,19 +26,19 @@ fn main() -> Result<(), std::io::Error> {
     );
 
     log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
-    //let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
-    //let drivers = String::from_utf8_lossy(&drivers_raw);
+    let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
+    let drivers = String::from_utf8_lossy(&drivers_raw);
 
     log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
-    //let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
-    //let devices = String::from_utf8_lossy(&devices_raw);
+    let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
+    let devices = String::from_utf8_lossy(&devices_raw);
 
     log("parse driver raw list", &log_name, opts.save_log, true, false);
     let mut infs: Vec<InfMetadata> = Vec::new();
-    //parse_drivers(&drivers, &devices, &mut infs);
-    let drvs = load_txt("..\\..\\drivers.txt")?;
-    let devs = load_txt("..\\..\\relations.txt")?;
-    parse_drivers(&drvs, &devs, &mut infs);
+    parse_drivers(&drivers, &devices, &mut infs);
+    // let drvs = load_txt("..\\..\\drivers.txt")?;
+    // let devs = load_txt("..\\..\\relations.txt")?;
+    // parse_drivers(&drvs, &devs, &mut infs);
 
     for inf in &infs {
         log(&format!("{:?}", inf), &log_name, opts.save_log, false, false);
@@ -54,7 +54,7 @@ fn main() -> Result<(), std::io::Error> {
             false
         );
         let inf_list = &load_txt(&opts.inf_list).unwrap();
-        uninstall_force(inf_list, &infs, &log_name, opts.save_log);
+        on_uninstall(inf_list, &infs, &log_name, opts.save_log);
     }
     log("\n### end log ###", &log_name, opts.save_log, false, false);
     Ok(())
@@ -167,11 +167,11 @@ fn parse_drivers(drvs: &str, devs: &str, infs: &mut Vec<InfMetadata>) {
                 .iter_mut()
                 .find(|ii| ii.published_name.eq_ignore_ascii_case(&drv_name)
             ) {
-                inf.instance_id = id.clone();
-                inf.device_description = des.clone();
-                inf.parent = parent.clone();
-                inf.extension_driver_names = ext_infs.clone();
-                inf.children = children.clone();
+                inf.instance_id = id;
+                inf.device_description = des;
+                inf.parent = parent;
+                inf.extension_driver_names = ext_infs;
+                inf.children = children;
             }
         }
         else {
@@ -189,26 +189,43 @@ fn get_value(line: &str) -> String {
     }
 }
 
-// pnputil.exe /delete-driver oemNumber /uninstall /force
-fn uninstall_force(
+fn on_uninstall(
     list: &str, 
     infs: &Vec<InfMetadata>, 
     log_path: &str, 
     save_file: bool
 ) {
+    let mut swcs: Vec<InfMetadata> = Vec::new();
+    let mut bases: Vec<InfMetadata> = Vec::new();
+    let mut exts: Vec<InfMetadata> = Vec::new();
     for to_uninstall in list.lines() {
-        if infs
-            .iter()
-            .any(|s| s.original_name.eq_ignore_ascii_case(to_uninstall.trim())
-        ) {
-            log(
-                &format!("uninstall {}", to_uninstall),
-                log_path, 
-                save_file, 
-                true, 
-                false
-            );
+        if let Some(oem) = 
+            infs
+                .iter()
+                .find(|inf| 
+                    inf.original_name.eq_ignore_ascii_case(to_uninstall.trim()))
+        {
+            match &oem.class_name {
+                s if s.eq("SoftwareComponent") => swcs.push(oem.clone()),
+                s if s.eq("Extension") => exts.push(oem.clone()),
+                _ => bases.push(oem.clone())
+            }
         }
+    }
+    go_through(&swcs, log_path, save_file);
+    go_through(&bases, log_path, save_file);
+    go_through(&exts, log_path, save_file);
+}
+
+fn go_through(infs: &Vec<InfMetadata>, log_path: &str, save_file: bool) {
+    for inf in infs.iter() {
+        // pnputil.exe /delete-driver oemNumber /uninstall /force
+        log(
+            &format!("{} {} = {}", inf.class_name, inf.published_name, inf.original_name),
+            log_path, 
+            save_file,
+            true,true
+        );
     }
 }
 
