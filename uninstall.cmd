@@ -1,16 +1,24 @@
 @echo off
-REM Get the current directory
-set currentDir=%cd%
 
-REM Get the parent directory
-for %%i in ("%currentDir%") do set parentDir=%%~dpi
+REM change language to en_US
+chcp 437
 
-REM Remove the trailing backslash
-set parentDir=%parentDir:~0,-1%
-
-REM Extract the parent folder name
-for %%i in ("%parentDir%") do set parentFolder=%%~nxi
-
+for %%i in ("%cd%") do set fileName=%%~nxi.txt
+if exist %fileName% del %fileName%
 dir /b /s *.inf > temp.txt
-for /f "tokens=*" %%a in (temp.txt) do echo %%~nxa >> %parentFolder%.txt
+for /f "tokens=*" %%a in (temp.txt) do echo %%~nxa >> raw.txt
 del temp.txt
+
+set "prev="
+for /f "delims=" %%F in ('sort raw.txt') do (
+  set "curr=%%F"
+  setlocal enabledelayedexpansion
+  if "!prev!" neq "!curr!" echo !curr!
+  endlocal
+  set "prev=%%F"
+) >>%fileName%
+del raw.txt
+
+dchu-uninstall.exe -l -f %fileName%
+
+pause

@@ -1,0 +1,8 @@
+Choose one of the methods to uninstall infs
+1. run command directly.
+    dchu-uninstall.exe -l -f inf_list_file.txt
+    -l = log the process
+    -f = auto reply yes to uninstall
+2. double click the uninstall.cmd batch file
+    a) copy dchu-uninstall.exe and uninstall.cmd to the driver folder
+    b) double click uninistall.cmd will uninstall the infs list in the driver folder

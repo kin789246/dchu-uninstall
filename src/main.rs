@@ -36,8 +36,8 @@ fn main() -> Result<(), std::io::Error> {
     log("parse driver raw list", &log_name, opts.save_log, true, false);
     let mut infs: Vec<InfMetadata> = Vec::new();
     parse_drivers(&drivers, &devices, &mut infs);
-    // let drvs = load_txt("..\\..\\drivers.txt")?;
-    // let devs = load_txt("..\\..\\relations.txt")?;
+    // let drvs = load_txt("drivers.txt")?;
+    // let devs = load_txt("relations.txt")?;
     // parse_drivers(&drvs, &devs, &mut infs);
 
     for inf in &infs {
@@ -205,6 +205,7 @@ fn on_uninstall(
                 .find(|inf| 
                     inf.original_name.eq_ignore_ascii_case(to_uninstall.trim()))
         {
+            println!("{} {}", &oem.original_name, &oem.class_name);
             match &oem.class_name {
                 s if s.eq("SoftwareComponent") => swcs.push(oem.clone()),
                 s if s.eq("Extension") => exts.push(oem.clone()),

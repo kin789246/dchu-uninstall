@@ -1,6 +1,6 @@
 [package]
-name = "dchu-uninst"
-version = "0.4.0"
+name = "dchu-uninstall"
+version = "0.5.0"
 edition = "2021"
 
 [dependencies]
