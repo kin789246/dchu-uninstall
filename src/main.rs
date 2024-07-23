@@ -7,14 +7,13 @@ use inf_metadata::InfMetadata;
 use logger::Logger;
 use options::Options;
 use std::{
-    fs::File, 
-    io::{Error, Read},
+    fs::File, io::{Error, Read}
 };
 use chrono::{self, Local};
 fn main() -> Result<(), std::io::Error> {
     let version = env!("CARGO_PKG_VERSION");
     let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
-    let log_name = "inf-remove_".to_owned() + &time_stamp + ".log";
+    let log_name = "dchu-uninstall".to_owned() + &time_stamp + ".log";
     let opts = Options::parse();
     println!("dchu-uninstall {} by Kin|Jiaching", version);
     log(
@@ -25,20 +24,20 @@ fn main() -> Result<(), std::io::Error> {
         false
     );
 
-    log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
-    let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
-    let drivers = String::from_utf8_lossy(&drivers_raw);
+    // log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
+    // let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
+    // let drivers = String::from_utf8_lossy(&drivers_raw);
 
-    log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
-    let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
-    let devices = String::from_utf8_lossy(&devices_raw);
+    // log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
+    // let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
+    // let devices = String::from_utf8_lossy(&devices_raw);
 
     log("parse driver raw list", &log_name, opts.save_log, true, false);
     let mut infs: Vec<InfMetadata> = Vec::new();
-    parse_drivers(&drivers, &devices, &mut infs);
-    // let drvs = load_txt("drivers.txt")?;
-    // let devs = load_txt("relations.txt")?;
-    // parse_drivers(&drvs, &devs, &mut infs);
+    // parse_drivers(&drivers, &devices, &mut infs);
+    let drvs = load_txt("drivers-mtl-h.txt")?;
+    let devs = load_txt("relations-mtl-h.txt")?;
+    parse_drivers(&drvs, &devs, &mut infs);
 
     for inf in &infs {
         log(&format!("{:?}", inf), &log_name, opts.save_log, false, false);
@@ -195,8 +194,7 @@ fn on_uninstall(
     log_path: &str, 
     save_file: bool
 ) {
-    let mut swcs: Vec<InfMetadata> = Vec::new();
-    let mut bases: Vec<InfMetadata> = Vec::new();
+    let mut to_unist: Vec<InfMetadata> = Vec::new();
     let mut exts: Vec<InfMetadata> = Vec::new();
     for to_uninstall in list.lines() {
         if let Some(oem) = 
@@ -205,24 +203,79 @@ fn on_uninstall(
                 .find(|inf| 
                     inf.original_name.eq_ignore_ascii_case(to_uninstall.trim()))
         {
-            println!("{} {}", &oem.original_name, &oem.class_name);
-            match &oem.class_name {
-                s if s.eq("SoftwareComponent") => swcs.push(oem.clone()),
-                s if s.eq("Extension") => exts.push(oem.clone()),
-                _ => bases.push(oem.clone())
+            if oem.class_name.eq_ignore_ascii_case("Extension") {
+                exts.push(oem.clone());
+            }
+            else {
+                to_unist.push(oem.clone());
             }
         }
     }
-    go_through(&swcs, log_path, save_file);
-    go_through(&bases, log_path, save_file);
-    go_through(&exts, log_path, save_file);
+
+    proceed_uninstall(&to_unist, &exts, log_path, save_file)
 }
 
-fn go_through(infs: &Vec<InfMetadata>, log_path: &str, save_file: bool) {
-    for inf in infs.iter() {
-        // pnputil.exe /delete-driver oemNumber /uninstall /force
+fn proceed_uninstall(
+    infs: &Vec<InfMetadata>, 
+    exts: &Vec<InfMetadata>,
+    log_path: &str, 
+    save_file: bool)
+{
+    let mut to_proceed: Vec<String> = Vec::new();
+    for oem in infs.iter() {
         log(
-            &format!("{} {} = {}", inf.class_name, inf.published_name, inf.original_name),
+            &format!("oem={} = {}, parent={}", oem.published_name, oem.original_name, oem.parent),
+            log_path,
+            save_file,
+            true,
+            true
+        );
+        if oem.parent.is_empty() && !to_proceed.contains(&oem.published_name) {
+            to_proceed.push(oem.published_name.clone());
+        }
+        else {
+            if let Some(i_parent) = 
+                infs.iter()
+                    .position(|f| f.instance_id.eq_ignore_ascii_case(&oem.parent))
+            {
+                let parent = infs.iter().nth(i_parent).unwrap();
+                if to_proceed.contains(&parent.published_name) &&
+                    !to_proceed.contains(&oem.published_name)
+                {
+                    to_proceed.insert(0, oem.published_name.clone());
+                } 
+                else if !to_proceed.contains(&parent.published_name) &&
+                    !to_proceed.contains(&oem.published_name) 
+                {
+                    to_proceed.push(oem.published_name.clone());
+                    to_proceed.push(parent.published_name.clone());
+                }
+                else if !to_proceed.contains(&parent.published_name) &&
+                    to_proceed.contains(&oem.published_name) 
+                {
+                    to_proceed.push(parent.published_name.clone());
+                }
+            }
+        }
+    }
+
+    // pnputil.exe /delete-driver oemNumber /uninstall /force
+    for (i, inf) in to_proceed.iter().enumerate() {
+        let org = infs.iter().find(|f| f.published_name == *inf).unwrap();
+        log(
+            &format!("{}. uninstall {}={} of {}\n\tparent={}\n\tinstant id={}",
+                i, inf, org.original_name, org.class_name, org.parent, org.instance_id), 
+            log_path, 
+            save_file, 
+            true, 
+            true
+        );
+    }
+
+    for (i, inf) in exts.iter().enumerate() {
+        log(
+            &format!( "{}. uninstall {}={} of {}", 
+                i, inf.published_name, inf.original_name, inf.class_name), 
             log_path, 
             save_file,
             true,true
