@@ -7,7 +7,7 @@ use inf_metadata::InfMetadata;
 use logger::Logger;
 use options::Options;
 use std::{
-    fs::File, io::{Error, Read}
+    collections::{HashMap, VecDeque}, fs::File, io::{Error, Read}
 };
 use chrono::{self, Local};
 fn main() -> Result<(), std::io::Error> {
@@ -148,7 +148,9 @@ fn parse_drivers(drvs: &str, devs: &str, infs: &mut Vec<InfMetadata>) {
                         while is_line.is_some() {
                             let sss = is_line.unwrap();
                             if sss.find(':').is_none() {
-                                children.push(sss.trim().to_string());
+                                if !sss.trim().is_empty() {
+                                    children.push(sss.trim().to_string());
+                                }
                                 is_line = iter.next();
                             }
                             else {
@@ -192,7 +194,7 @@ fn on_uninstall(
     list: &str, 
     infs: &Vec<InfMetadata>, 
     log_path: &str, 
-    save_file: bool
+    save_file: bool,
 ) {
     let mut to_unist: Vec<InfMetadata> = Vec::new();
     let mut exts: Vec<InfMetadata> = Vec::new();
@@ -221,50 +223,21 @@ fn proceed_uninstall(
     log_path: &str, 
     save_file: bool)
 {
-    let mut to_proceed: Vec<String> = Vec::new();
-    for oem in infs.iter() {
-        log(
-            &format!("oem={} = {}, parent={}", oem.published_name, oem.original_name, oem.parent),
-            log_path,
-            save_file,
-            true,
-            true
-        );
-        if oem.parent.is_empty() && !to_proceed.contains(&oem.published_name) {
-            to_proceed.push(oem.published_name.clone());
-        }
-        else {
-            if let Some(i_parent) = 
-                infs.iter()
-                    .position(|f| f.instance_id.eq_ignore_ascii_case(&oem.parent))
-            {
-                let parent = infs.iter().nth(i_parent).unwrap();
-                if to_proceed.contains(&parent.published_name) &&
-                    !to_proceed.contains(&oem.published_name)
-                {
-                    to_proceed.insert(0, oem.published_name.clone());
-                } 
-                else if !to_proceed.contains(&parent.published_name) &&
-                    !to_proceed.contains(&oem.published_name) 
-                {
-                    to_proceed.push(oem.published_name.clone());
-                    to_proceed.push(parent.published_name.clone());
-                }
-                else if !to_proceed.contains(&parent.published_name) &&
-                    to_proceed.contains(&oem.published_name) 
-                {
-                    to_proceed.push(parent.published_name.clone());
-                }
-            }
-        }
-    }
+    let to_proceed: Vec<String> = list_publish_names(&infs);
 
     // pnputil.exe /delete-driver oemNumber /uninstall /force
     for (i, inf) in to_proceed.iter().enumerate() {
         let org = infs.iter().find(|f| f.published_name == *inf).unwrap();
+        let pa = match infs
+            .iter()
+            .find(|f| !org.parent.is_empty() && f.instance_id.eq(&org.parent))
+        {
+            Some(s) => s.original_name.clone(),
+            None => "none".to_string()
+        };
         log(
-            &format!("{}. uninstall {}={} of {}\n\tparent={}\n\tinstant id={}",
-                i, inf, org.original_name, org.class_name, org.parent, org.instance_id), 
+            &format!("{}. uninstall {}={} of {} parent={}",
+                i, inf, org.original_name, org.class_name, pa.clone()), 
             log_path, 
             save_file, 
             true, 
@@ -283,6 +256,44 @@ fn proceed_uninstall(
     }
 }
 
+fn list_publish_names(metadata_list: &Vec<InfMetadata>) -> Vec<String> {
+    let mut level_map: HashMap<String, i32> = HashMap::new();
+    let mut instance_id_map: HashMap<String, InfMetadata> = HashMap::new();
+    let mut queue: VecDeque<InfMetadata> = VecDeque::new();
+
+    for metadata in metadata_list.iter() {
+        level_map.insert(metadata.published_name.clone(), 0);
+        if !metadata.instance_id.is_empty() {
+            instance_id_map.insert(metadata.instance_id.clone(), metadata.clone());
+        }
+    }
+
+    for metadata in metadata_list.iter() {
+        queue.push_back(metadata.clone());
+        while !queue.is_empty() {
+            let curr_opt = queue.pop_front();
+            let curr = curr_opt.unwrap();
+            if curr.children.len() > 0 {
+                for child in curr.children {
+                    if instance_id_map.contains_key(&child) {
+                        let cc = instance_id_map.get(&child).unwrap();
+                        level_map.entry(cc.published_name.clone()).and_modify(|f| *f += 1);        
+                        queue.push_back(cc.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    let mut ordered_list: Vec<_> = level_map.iter().collect(); 
+    ordered_list.sort_by(|a, b| b.1.cmp(a.1));
+
+    ordered_list
+        .iter()
+        .map(|f| f.0.to_string())
+        .collect()
+}
+
 fn load_txt(path: &str) -> Result<String, Error> {
     let mut file = File::open(path)?;
     let mut content = String::new();
@@ -292,7 +303,12 @@ fn load_txt(path: &str) -> Result<String, Error> {
 
 fn log(content: &str, path: &str, save_file: bool, add_time: bool, on_screen: bool) {
     if on_screen {
-        println!("{}", content);
+        let mut r: String = String::from(content);
+        if add_time {
+            let time_stamp = Local::now().format("%Y-%m%d_%H:%M:%S").to_string();
+            r = time_stamp + ": " + &r;
+        }
+        println!("{}", r);
     }
     if save_file {
         Logger::log(content, path, add_time).expect("Log to file failed.");
