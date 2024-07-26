@@ -17,7 +17,7 @@ impl Options {
         let mut inf_list = String::new();
         for line in std::env::args() {
             match &line {
-                s if s.eq_ignore_ascii_case("-l") => save_log = true,
+                s if s.eq_ignore_ascii_case("-s") => save_log = true,
                 s if s.contains(".txt") => inf_list = line,
                 s if s.eq_ignore_ascii_case("-f") => force = true,
                 _ => continue

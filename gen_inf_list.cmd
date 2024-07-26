@@ -1,4 +1,7 @@
 @echo off
+
+pushd %~dp0
+
 for %%i in ("%cd%") do set fileName=%%~nxi.txt
 if exist %fileName% del %fileName%
 dir /b /s *.inf > temp.txt
@@ -16,4 +19,7 @@ for /f "delims=" %%F in ('sort raw.txt') do (
 del raw.txt
 
 echo generate %filename% for inf list
+
+popd
+
 pause

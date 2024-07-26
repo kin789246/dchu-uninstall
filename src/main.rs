@@ -13,7 +13,7 @@ use chrono::{self, Local};
 fn main() -> Result<(), std::io::Error> {
     let version = env!("CARGO_PKG_VERSION");
     let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
-    let log_name = "dchu-uninstall".to_owned() + &time_stamp + ".log";
+    let log_name = "dchu-uninstall_".to_owned() + &time_stamp + ".log";
     let opts = Options::parse();
     println!("dchu-uninstall {} by Kin|Jiaching", version);
     log(
@@ -24,20 +24,20 @@ fn main() -> Result<(), std::io::Error> {
         false
     );
 
-    // log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
-    // let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
-    // let drivers = String::from_utf8_lossy(&drivers_raw);
+    log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
+    let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
+    let drivers = String::from_utf8_lossy(&drivers_raw);
 
-    // log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
-    // let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
-    // let devices = String::from_utf8_lossy(&devices_raw);
+    log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
+    let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
+    let devices = String::from_utf8_lossy(&devices_raw);
 
     log("parse driver raw list", &log_name, opts.save_log, true, false);
     let mut infs: Vec<InfMetadata> = Vec::new();
-    // parse_drivers(&drivers, &devices, &mut infs);
-    let drvs = load_txt("drivers-mtl-h.txt")?;
-    let devs = load_txt("relations-mtl-h.txt")?;
-    parse_drivers(&drvs, &devs, &mut infs);
+    parse_drivers(&drivers, &devices, &mut infs);
+    // let drvs = load_txt("drivers-mtl-h.txt")?;
+    // let devs = load_txt("relations-mtl-h.txt")?;
+    // parse_drivers(&drvs, &devs, &mut infs);
 
     for inf in &infs {
         log(&format!("{:?}", inf), &log_name, opts.save_log, false, false);
@@ -53,7 +53,7 @@ fn main() -> Result<(), std::io::Error> {
             false
         );
         let inf_list = &load_txt(&opts.inf_list).unwrap();
-        on_uninstall(inf_list, &infs, &log_name, opts.save_log);
+        on_uninstall(inf_list, &infs, &log_name, opts.save_log, opts.force);
     }
     log("\n### end log ###", &log_name, opts.save_log, false, false);
     Ok(())
@@ -195,8 +195,9 @@ fn on_uninstall(
     infs: &Vec<InfMetadata>, 
     log_path: &str, 
     save_file: bool,
+    force: bool
 ) {
-    let mut to_unist: Vec<InfMetadata> = Vec::new();
+    let mut base_swcs: Vec<InfMetadata> = Vec::new();
     let mut exts: Vec<InfMetadata> = Vec::new();
     for to_uninstall in list.lines() {
         if let Some(oem) = 
@@ -209,20 +210,21 @@ fn on_uninstall(
                 exts.push(oem.clone());
             }
             else {
-                to_unist.push(oem.clone());
+                base_swcs.push(oem.clone());
             }
         }
     }
 
-    proceed_uninstall(&to_unist, &exts, log_path, save_file)
+    proceed_uninstall(&base_swcs, &exts, log_path, save_file, force);
 }
 
 fn proceed_uninstall(
     infs: &Vec<InfMetadata>, 
     exts: &Vec<InfMetadata>,
     log_path: &str, 
-    save_file: bool)
-{
+    save_file: bool,
+    force: bool
+) {
     let to_proceed: Vec<String> = list_publish_names(&infs);
 
     // pnputil.exe /delete-driver oemNumber /uninstall /force
@@ -243,6 +245,12 @@ fn proceed_uninstall(
             true, 
             true
         );
+        if force {
+            let c = "pnputil /delete-driver ".to_string() + inf + " /uninstall";
+            let res_raw = exec_cmd::cmd(&c);
+            let res = String::from_utf8_lossy(&res_raw);
+            log(&res, log_path, save_file, false, true);
+        }
     }
 
     for (i, inf) in exts.iter().enumerate() {
@@ -251,8 +259,17 @@ fn proceed_uninstall(
                 i, inf.published_name, inf.original_name, inf.class_name), 
             log_path, 
             save_file,
-            true,true
+            true,
+            true
         );
+        if force {
+            let c = "pnputil /delete-driver ".to_string() 
+                + &inf.published_name
+                + " /uninstall";
+            let res_raw = exec_cmd::cmd(&c);
+            let res = String::from_utf8_lossy(&res_raw);
+            log(&res, log_path, save_file, false, true);
+        }
     }
 }
 
