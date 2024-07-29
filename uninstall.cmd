@@ -1,3 +1,5 @@
+:: uninstall command v1.01 by kin|jiaching
+
 @echo off
 
 REM change language to en_US
@@ -22,6 +24,20 @@ for /f "delims=" %%F in ('sort raw.txt') do (
 del raw.txt
 
 dchu-uninstall.exe -s -f %fileName%
+
+:: find DSP device on RPL MTL series CPU and remove then re-scan for Intel SST OED
+
+set intcaudio=INTELAUDIO
+set "pscmd=powershell -command "get-pnpdevice ^| where-object { $_.name -like '*High Definition DSP*' } ^| select-object -property instanceid""
+for /f "tokens=1 delims=" %%i in ( '%pscmd% ^| findstr %intcaudio%' ) do (
+  set dsp="%%i"
+)
+
+if defined dsp ( 
+  echo remove device %dsp%
+  pnputil /remove-device %dsp%
+  pnputil /scan-devices
+)
 
 popd
 
