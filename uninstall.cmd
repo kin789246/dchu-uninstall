@@ -1,4 +1,4 @@
-:: uninstall command v1.01 by kin|jiaching
+:: uninstall command v1.02 by kin|jiaching
 
 @echo off
 
@@ -35,7 +35,7 @@ for /f "tokens=1 delims=" %%i in ( '%pscmd% ^| findstr %intcaudio%' ) do (
 
 if defined dsp ( 
   echo remove device %dsp%
-  pnputil /remove-device %dsp%
+  pnputil /remove-device %dsp% /subtree
   pnputil /scan-devices
 )
 
