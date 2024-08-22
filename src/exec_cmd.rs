@@ -1,19 +1,21 @@
-use std::process::Command;
+use std::{os::windows::process::CommandExt, process::Command};
 
-pub fn ps(cmd: &str) -> Vec<u8> {
-    let output = Command::new("powershell")
+pub fn ps(c: &str) -> String {
+    let op = Command::new("powershell")
         .arg("-command")
-        .arg(cmd)
+        .raw_arg(c)
         .output()
         .expect("Failed to execute command");
-    output.stdout
+    let op_str = String::from_utf8_lossy(&op.stdout).to_string();
+    op_str
 }
 
-pub fn cmd(c: &str) -> Vec<u8> {
-    let output = Command::new("cmd")
+pub fn cmd(c: &str) -> String {
+    let op = Command::new("cmd")
         .arg("/c")
-        .arg(c)
+        .raw_arg(c)
         .output()
         .expect("Failed to execute command");
-    output.stdout
+    let op_str = String::from_utf8_lossy(&op.stdout).to_string();
+    op_str
 }

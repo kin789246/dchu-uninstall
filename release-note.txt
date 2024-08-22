@@ -1,2 +1,9 @@
+--- v1.1.0 ---
+a) add gui mode
+
+--- v1.0.1 ---
+a) modify path methods to full path
+b) modify exec_cmd arg to raw_args and return String directly
+
 --- v1.0.0 ---
 a) first formal release

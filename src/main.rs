@@ -11,10 +11,11 @@ use std::{
 };
 use chrono::{self, Local};
 fn main() -> Result<(), std::io::Error> {
+    let opts = Options::parse();
     let version = env!("CARGO_PKG_VERSION");
     let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
-    let log_name = "dchu-uninstall_".to_owned() + &time_stamp + ".log";
-    let opts = Options::parse();
+    let log_name = format!("{}\\dchu-uninstall_{}.log", &opts.work_dir, &time_stamp);
+    println!("{}", &log_name);
     println!("dchu-uninstall {} by Kin|Jiaching", version);
     log(
         &format!("dchu-uninstall {} by Kin|Jiaching\n", version), 
@@ -25,12 +26,10 @@ fn main() -> Result<(), std::io::Error> {
     );
 
     log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
-    let drivers_raw = exec_cmd::cmd("pnputil /enum-drivers");
-    let drivers = String::from_utf8_lossy(&drivers_raw);
+    let drivers = exec_cmd::cmd("pnputil /enum-drivers");
 
     log("enum devices with pnputil.exe", &log_name, opts.save_log, true, false);
-    let devices_raw = exec_cmd::cmd("pnputil /enum-devices /relations");
-    let devices = String::from_utf8_lossy(&devices_raw);
+    let devices = exec_cmd::cmd("pnputil /enum-devices /relations");
 
     log("parse driver raw list", &log_name, opts.save_log, true, false);
     let mut infs: Vec<InfMetadata> = Vec::new();
@@ -192,7 +191,7 @@ fn get_value(line: &str) -> String {
 
 fn on_uninstall(
     list: &str, 
-    infs: &Vec<InfMetadata>, 
+    infs: &[InfMetadata], 
     log_path: &str, 
     save_file: bool,
     force: bool
@@ -219,8 +218,8 @@ fn on_uninstall(
 }
 
 fn proceed_uninstall(
-    infs: &Vec<InfMetadata>, 
-    exts: &Vec<InfMetadata>,
+    infs: &[InfMetadata], 
+    exts: &[InfMetadata],
     log_path: &str, 
     save_file: bool,
     force: bool
@@ -247,8 +246,7 @@ fn proceed_uninstall(
         );
         if force {
             let c = "pnputil /delete-driver ".to_string() + inf + " /uninstall";
-            let res_raw = exec_cmd::cmd(&c);
-            let res = String::from_utf8_lossy(&res_raw);
+            let res = exec_cmd::cmd(&c);
             log(&res, log_path, save_file, false, true);
         }
     }
@@ -266,14 +264,13 @@ fn proceed_uninstall(
             let c = "pnputil /delete-driver ".to_string() 
                 + &inf.published_name
                 + " /uninstall";
-            let res_raw = exec_cmd::cmd(&c);
-            let res = String::from_utf8_lossy(&res_raw);
+            let res = exec_cmd::cmd(&c);
             log(&res, log_path, save_file, false, true);
         }
     }
 }
 
-fn list_publish_names(metadata_list: &Vec<InfMetadata>) -> Vec<String> {
+fn list_publish_names(metadata_list: &[InfMetadata]) -> Vec<String> {
     let mut level_map: HashMap<String, i32> = HashMap::new();
     let mut instance_id_map: HashMap<String, InfMetadata> = HashMap::new();
     let mut queue: VecDeque<InfMetadata> = VecDeque::new();
