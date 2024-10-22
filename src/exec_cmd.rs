@@ -13,6 +13,7 @@ pub fn ps(c: &str) -> String {
 pub fn cmd(c: &str) -> String {
     let op = Command::new("cmd")
         .arg("/c")
+        .arg("chcp 437 &&")
         .raw_arg(c)
         .output()
         .expect("Failed to execute command");

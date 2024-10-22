@@ -2,28 +2,38 @@ pub mod logger;
 pub mod exec_cmd;
 pub mod options;
 pub mod inf_metadata;
+pub mod winutil;
 
 use inf_metadata::InfMetadata;
 use logger::Logger;
 use options::Options;
+use winutil::create_window;
 use std::{
-    collections::{HashMap, VecDeque}, fs::File, io::{Error, Read}
+    collections::{HashMap, VecDeque}, 
+    fs::File, io::{Error, Read}, 
+    process::ExitCode,
 };
 use chrono::{self, Local};
-fn main() -> Result<(), std::io::Error> {
+fn main() -> ExitCode {
     let opts = Options::parse();
-    let version = env!("CARGO_PKG_VERSION");
     let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
     let log_name = format!("{}\\dchu-uninstall_{}.log", &opts.work_dir, &time_stamp);
-    println!("{}", &log_name);
-    println!("dchu-uninstall {} by Kin|Jiaching", version);
-    log(
-        &format!("dchu-uninstall {} by Kin|Jiaching\n", version), 
-        &log_name, 
-        opts.save_log, 
-        false, 
-        false
-    );
+    let show = format!(
+        "{} {} by Kin|Jiaching", 
+        env!("CARGO_PKG_NAME"), 
+        env!("CARGO_PKG_VERSION")
+    ); 
+    const HELP_STR: &'static str = 
+        "parameters:\n\
+        *.txt [inf list file]\n\
+        -v [save logs to file]\n\
+        -f [execute pnputil to delete inf]";
+    log(&show, &log_name, opts.save_log, false, true);
+
+    if opts.print_help {
+        println!("{}", HELP_STR);
+        return ExitCode::from(1);
+    }
 
     log("enum drivers with pnputil.exe", &log_name, opts.save_log, true, false);
     let drivers = exec_cmd::cmd("pnputil /enum-drivers");
@@ -42,6 +52,21 @@ fn main() -> Result<(), std::io::Error> {
         log(&format!("{:?}", inf), &log_name, opts.save_log, false, false);
     }
 
+    if opts.gui_mode {
+        auto_mode(&show, &opts, &log_name, &infs);
+    }
+    else {
+        command_mode(&opts, &log_name, &infs);
+    }
+    log("\n### end log ###", &log_name, opts.save_log, false, false);
+    ExitCode::SUCCESS
+}
+
+fn command_mode(
+    opts: &Options,
+    log_name: &str,
+    infs: &[InfMetadata],
+) {
     if !opts.inf_list.is_empty() {
         // remove ome?.inf in inf list
         log(
@@ -54,8 +79,15 @@ fn main() -> Result<(), std::io::Error> {
         let inf_list = &load_txt(&opts.inf_list).unwrap();
         on_uninstall(inf_list, &infs, &log_name, opts.save_log, opts.force);
     }
-    log("\n### end log ###", &log_name, opts.save_log, false, false);
-    Ok(())
+}
+
+fn auto_mode(
+    title: &str,
+    opts: &Options,
+    log_name: &str,
+    infs: &[InfMetadata],
+) {
+    create_window(title, "test");
 }
 
 fn parse_drivers(drvs: &str, devs: &str, infs: &mut Vec<InfMetadata>) {

@@ -1,7 +1,7 @@
 --- Command Mode ---
 1. run command as administrator directly.
-    dchu-uninstall.exe -s -f inf_list_file.txt
-    -s = log the process
+    dchu-uninstall.exe -v -f inf_list_file.txt
+    -v = log the process
     -f = execute uninstall
     without -f = list inf files only
 2. Run the uninstall.cmd batch file as administrator 

@@ -23,7 +23,7 @@ for /f "delims=" %%F in ('sort raw.txt') do (
 ) >>%fileName%
 del raw.txt
 
-dchu-uninstall.exe -s -f %fileName%
+dchu-uninstall.exe -v -f %fileName%
 
 :: find DSP device on RPL MTL series CPU and remove then re-scan for Intel SST OED
 
