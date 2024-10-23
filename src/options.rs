@@ -1,11 +1,11 @@
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Options {
     pub save_log: bool,
     pub gui_mode: bool,
     pub force: bool,
     pub print_help: bool,
     pub inf_list: String,
-    pub work_dir: String
+    pub work_dir: String,
 }
 
 impl Options {
@@ -33,8 +33,7 @@ impl Options {
             .unwrap()
             .parent()
             .unwrap()
-            .to_str()
-            .unwrap()
+            .to_string_lossy()
             .to_string();
         Self { save_log, gui_mode, force, print_help, inf_list, work_dir }
     }

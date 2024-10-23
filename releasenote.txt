@@ -1,5 +1,5 @@
---- v1.1.1 ---
-a) Directly uninstall the inf files in the driver folder without parameters
+--- v2.0.0 ---
+a) code refactoring
 
 --- v1.1.0 ---
 a) add print help feature

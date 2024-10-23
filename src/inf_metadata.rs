@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct InfMetadata {
     pub published_name: String,
     pub original_name: String,
@@ -17,20 +17,6 @@ pub struct InfMetadata {
 
 impl InfMetadata {
     pub fn new() -> Self {
-        InfMetadata {
-            published_name: "".to_string(),
-            original_name: "".to_string(),
-            provider_name: "".to_string(),
-            class_name: "".to_string(),
-            class_guid: "".to_string(),
-            driver_version: "".to_string(),
-            signer_name: "".to_string(),
-            instance_id: "".to_string(),
-            device_description: "".to_string(),
-            extension_id: "".to_string(),
-            parent: "".to_string(),
-            children: Vec::new(),
-            extension_driver_names: Vec::new(),
-        }
+        Self { ..Default::default() }
     }
 }
