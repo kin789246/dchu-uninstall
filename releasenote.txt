@@ -1,3 +1,6 @@
+--- v2.0.1 ---
+a) list order of the inf files while uninstalled
+
 --- v2.0.0 ---
 a) code refactoring
 

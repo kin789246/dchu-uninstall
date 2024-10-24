@@ -252,9 +252,10 @@ impl App {
         exts: &[InfMetadata],
     ) {
         let to_proceed: Vec<String> = Self::list_publish_names(&base_swcs);
-
+        let mut c = 0usize;
+        let mut msg = String::from("\n");
         // pnputil.exe /delete-driver oemNumber /uninstall /force
-        for (i, inf) in to_proceed.iter().enumerate() {
+        for inf in to_proceed.iter() {
             let org = self.infs.iter().find(|f| f.published_name == *inf).unwrap();
             let pa = match self.infs
                 .iter()
@@ -263,29 +264,29 @@ impl App {
                 Some(s) => s.original_name.clone(),
                 None => "none".to_owned()
             };
-            self.log(
-                &format!("{}. uninstall {}={} of {} parent={}",
-                    i, inf, org.original_name, org.class_name, pa.clone()), 
-                self.opts.save_log, 
-                true, 
-                true
-            );
+            c += 1;
+            let m = format!(
+                "{}. uninstall {}={} of {} parent={}\n",
+                c, inf, org.original_name, org.class_name, pa.clone()
+            ); 
+            msg.push_str(&m);
             if self.opts.force {
+                self.log(&m, self.opts.save_log, true, true);
                 let c = format!("pnputil /delete-driver {} /uninstall", &inf);
                 let res = cmd(&c);
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
             }
         }
 
-        for (i, inf) in exts.iter().enumerate() {
-            self.log(
-                &format!( "{}. uninstall {}={} of {}", 
-                    i, inf.published_name, inf.original_name, inf.class_name), 
-                self.opts.save_log,
-                true,
-                true
+        for inf in exts.iter() {
+            c += 1;
+            let m = format!( 
+                "{}. uninstall {}={} of {}\n", 
+                c, inf.published_name, inf.original_name, inf.class_name
             );
+            msg.push_str(&m);
             if self.opts.force {
+                self.log(&m, self.opts.save_log, true, true);
                 let c = format!(
                     "pnputil /delete-driver {} /uninstall", 
                     &inf.published_name
@@ -294,6 +295,8 @@ impl App {
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
             }
         }
+        // list the results
+        self.log(&msg, self.opts.save_log, true, true);
     }
 
     fn list_publish_names(metadata_list: &[InfMetadata]) -> Vec<String> {
