@@ -2,7 +2,8 @@ use std::{
     collections::{HashMap, VecDeque}, 
     error::Error, 
     fs::File, 
-    io::Read
+    io::Read,
+    result::Result,
 };
 use chrono::Local;
 use crate::{
@@ -10,32 +11,32 @@ use crate::{
     exec_cmd::cmd, 
     inf_metadata::InfMetadata,
     logger::Logger, 
-    options::Options
+    options::Options, 
 };
-use win32rs::{
-    dialog::*,
-    win_str::*,
+use windows::{
+    Win32::{
+        Foundation::*,
+        UI::{
+            WindowsAndMessaging::*,
+            Controls::*,
+        },
+    },
+    core::*,
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct App {
     opts: Options,
     version: String,
     app_log: String,
     drivers: String,
     devices: String,
+    help: String,
     infs: Vec<InfMetadata>,
 }
 
 impl App {
-    const HELP_STR: &'static str = 
-        "parameters:\n\
-        *.txt [inf list file]\n\
-        -v [save logs to file]\n\
-        -f [execute pnputil to delete inf]";
-
-    pub fn new() -> Self { 
-        let opts = Options::parse();
+    pub fn new(opts: &Options) -> Self { 
         let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
         let app_log = format!("{}\\dchu-uninstall_{}.log", &opts.work_dir, &time_stamp);
         let version = format!(
@@ -43,14 +44,33 @@ impl App {
             env!("CARGO_PKG_NAME"), 
             env!("CARGO_PKG_VERSION")
         );
-        Self { opts, version, app_log, ..Default::default() }
+        let help: String = "parameters:\n\
+            *.txt [inf list file]\n\
+            -v [save logs to file]\n\
+            -f [execute pnputil to delete inf]"
+            .to_owned();
+
+        Self { 
+            opts: opts.clone(), 
+            version, 
+            app_log, 
+            help,
+            ..Default::default() 
+        }
     }
 
-    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn get_version(&self) -> String {
+        self.version.clone()
+    }
+
+    pub fn set_path(&mut self, path: &str) {
+    }
+
+    pub fn proceed(&mut self) -> Result<(), Box<dyn Error>> {
         self.log(&self.version, self.opts.save_log, false, true);
 
         if self.opts.print_help {
-            println!("{}", Self::HELP_STR);
+            println!("{}", &self.help);
             return Err(Box::new(AppError::new(Kind::InvalidFlags)));
         }
 
@@ -76,16 +96,6 @@ impl App {
         for inf in &self.infs {
             self.log(&format!("{:?}", inf), self.opts.save_log, false, false);
         }
-
-        match self.opts.gui_mode {
-            true => self.auto_mode(),
-            false => self.command_mode()
-        };
-        self.log("### end log ###", self.opts.save_log, false, false);
-        Ok(())
-    }
-
-    fn command_mode(&self) {
         if !self.opts.inf_list.is_empty() {
             // remove ome?.inf in inf list
             self.log(
@@ -94,15 +104,13 @@ impl App {
                 true, 
                 false
             );
-            if let Ok(inf_list) = Self::load_txt(&self.opts.inf_list) {
-                self.on_uninstall(&inf_list);
+            match Self::load_txt(&self.opts.inf_list) {
+                Ok(inf_list) => self.on_uninstall(&inf_list),
+                Err(e) => return Err(e)
             }
         }
-    }
-
-    fn auto_mode(&mut self) {
-        let msg = format!("{}\n{}", &self.version, &Self::HELP_STR);
-        pop_info(None, &str_to_hstring(&msg));
+        self.log("### end log ###", self.opts.save_log, false, false);
+        Ok(())
     }
 
     fn parse_drivers(&mut self) {
@@ -364,6 +372,37 @@ impl App {
         }
         if save_file {
             Logger::log(content, &self.app_log, add_time).expect("Log to file failed.");
+        }
+    }
+
+    // fn on_show(&self, textbox: HWND, msg: &str) {
+    //     unsafe {
+    //         let _ = SetWindowTextW(textbox, str_to_pcwstr(msg));
+    //     }
+    // }
+
+    fn on_append(&self, textbox: HWND, msg: &str) {
+        unsafe {
+            // Get current line count
+            let line_count = SendMessageW(textbox, EM_GETLINECOUNT, WPARAM(0), LPARAM(0));
+            
+            // Get the length of text in the edit control
+            let text_length = SendMessageW(textbox, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0));
+            // Set the selection to the end of the text
+            // This effectively moves the caret to the end
+            SendMessageW(
+                textbox,
+                EM_SETSEL,
+                WPARAM(text_length.0 as usize),
+                LPARAM(text_length.0)
+            );
+            
+            // Append new line
+            let new_line = w!("\r\nNew line added at timestamp: ");
+            SendMessageW(textbox, EM_REPLACESEL, WPARAM(1), LPARAM(new_line.as_ptr() as isize));
+            
+            // Scroll to bottom
+            SendMessageW(textbox, EM_LINESCROLL, WPARAM(0), LPARAM(line_count.0));
         }
     }
 }

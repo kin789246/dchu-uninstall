@@ -1,9 +1,6 @@
 use std::{borrow::Cow, os::windows::process::CommandExt, process::Command};
-use win32rs::{
-    win_str::multi_byte_to_wide_char, 
-    CP_OEMCP, 
-    MULTI_BYTE_TO_WIDE_CHAR_FLAGS
-};
+use crate::win_str::multi_byte_to_wide_char;
+use windows::Win32::Globalization::*;
 
 pub fn ps(c: &str) -> String {
     let op = Command::new("powershell")
@@ -16,10 +13,9 @@ pub fn ps(c: &str) -> String {
 }
 
 pub fn cmd(c: &str) -> Result<Cow<'static, str>, Cow<'static, str>> {
+    let cc = format!("/c chcp 437 && {}", c);
     let op = Command::new("cmd")
-        .arg("/c")
-        .arg("chcp 437 &&")
-        .raw_arg(c)
+        .raw_arg(&cc)
         .output()
         .expect("Failed to execute command");
     let o = multi_byte_to_wide_char(

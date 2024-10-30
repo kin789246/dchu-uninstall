@@ -63,10 +63,10 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "dchu-uninstall"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "chrono",
- "win32rs",
+ "windows",
 ]
 
 [[package]]
@@ -216,13 +216,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
-
-[[package]]
-name = "win32rs"
-version = "0.1.0"
-dependencies = [
- "windows",
-]
 
 [[package]]
 name = "windows"
