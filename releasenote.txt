@@ -1,3 +1,6 @@
+--- v2.1.0 ---
+a) gui mode support
+
 --- v2.0.1 ---
 a) list order of the inf files while uninstalled
 

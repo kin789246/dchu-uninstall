@@ -1,27 +1,28 @@
 use std::{
     collections::{HashMap, VecDeque}, 
     error::Error, 
-    fs::File, 
+    fs::{File, read_dir}, 
     io::Read,
     result::Result,
+    path::Path,
 };
 use chrono::Local;
 use crate::{
+    dialog::pop_yesno, 
     error::{ AppError, Kind }, 
-    exec_cmd::cmd, 
-    inf_metadata::InfMetadata,
+    exec_cmd::*, 
+    inf_metadata::InfMetadata, 
     logger::Logger, 
-    options::Options, 
+    options::Options 
 };
 use windows::{
+    core::*, 
     Win32::{
         Foundation::*,
         UI::{
-            WindowsAndMessaging::*,
-            Controls::*,
-        },
-    },
-    core::*,
+            Controls::*, WindowsAndMessaging::*
+        }
+    }
 };
 
 #[derive(Default, Clone)]
@@ -32,13 +33,16 @@ pub struct App {
     drivers: String,
     devices: String,
     help: String,
+    infs_path: String,
     infs: Vec<InfMetadata>,
+    result_tb: HWND,
 }
 
 impl App {
     pub fn new(opts: &Options) -> Self { 
         let time_stamp = Local::now().format("%Y-%m%d_%H%M%S").to_string();
         let app_log = format!("{}\\dchu-uninstall_{}.log", &opts.work_dir, &time_stamp);
+        let infs_path = opts.work_dir.clone();
         let version = format!(
             "{} {} by Kin|Jiaching", 
             env!("CARGO_PKG_NAME"), 
@@ -55,6 +59,7 @@ impl App {
             version, 
             app_log, 
             help,
+            infs_path,
             ..Default::default() 
         }
     }
@@ -64,27 +69,41 @@ impl App {
     }
 
     pub fn set_path(&mut self, path: &str) {
+        self.infs_path = path.to_owned();
+    }
+
+    pub fn get_infs_path(&self) -> HSTRING {
+        HSTRING::from(&self.infs_path)
+    }
+
+    pub fn set_result_tb(&mut self, hwnd: &HWND) {
+        self.result_tb = hwnd.clone();
     }
 
     pub fn proceed(&mut self) -> Result<(), Box<dyn Error>> {
-        self.log(&self.version, self.opts.save_log, false, true);
+        self.log_console(&self.version, self.opts.save_log, false, true);
 
         if self.opts.print_help {
-            println!("{}", &self.help);
+            self.log_console(
+                &format!("\n{}", &self.help),
+                self.opts.save_log, 
+                true, 
+                true
+            );
             return Err(Box::new(AppError::new(Kind::InvalidFlags)));
         }
 
-        self.log("enum drivers with pnputil.exe", self.opts.save_log, true, false);
+        self.log_console("enum drivers with pnputil.exe", self.opts.save_log, true, false);
         if let Ok(r) = cmd("pnputil /enum-drivers") {
             self.drivers = r.to_string();
         }
 
-        self.log("enum devices with pnputil.exe", self.opts.save_log, true, false);
+        self.log_console("enum devices with pnputil.exe", self.opts.save_log, true, false);
         if let Ok(r) = cmd("pnputil /enum-devices /relations").to_owned() {
             self.devices = r.to_string();
         }
 
-        self.log("parse driver raw list", self.opts.save_log, true, false);
+        self.log_console("parse driver raw list", self.opts.save_log, true, false);
         self.parse_drivers();
         
         // debug
@@ -94,22 +113,148 @@ impl App {
 
         // log installed 3rd part drivers
         for inf in &self.infs {
-            self.log(&format!("{:?}", inf), self.opts.save_log, false, false);
+            self.log_console(&format!("{:?}", inf), self.opts.save_log, false, false);
         }
         if !self.opts.inf_list.is_empty() {
             // remove ome?.inf in inf list
-            self.log(
+            self.log_console(
                 &format!("load inf files from {}", self.opts.inf_list),
                 self.opts.save_log, 
                 true, 
                 false
             );
             match Self::load_txt(&self.opts.inf_list) {
-                Ok(inf_list) => self.on_uninstall(&inf_list),
+                Ok(inf_list) => self.on_uninstall(inf_list.lines()),
                 Err(e) => return Err(e)
             }
         }
-        self.log("### end log ###", self.opts.save_log, false, false);
+        self.log_console("### end log ###", self.opts.save_log, false, false);
+        Ok(())
+    }
+
+    pub fn init_gui(&mut self) {
+        self.log_gui(&self.version, false, true);
+        self.log_gui("\r\nREADY TO GO", false, true);
+    }
+
+    pub fn remove_btn_click(&mut self) {
+        if self.infs.is_empty() {
+            self.load_infs();
+        }
+        self.log_gui(
+            &format!("get inf files list from {}", &self.infs_path), 
+            true, 
+            true
+        );
+        match self.get_inf_list() {
+            Ok(s) => {
+                self.log_gui(&s, false, true);
+                self.confirm_uninstall();
+                self.on_uninstall(s.lines());
+            },
+            Err(e) => {
+                self.log_gui(&e, true, true);
+            }
+        }
+        // find DSP device on RPL MTL series CPU and remove then re-scan for Intel SST OED
+        self.remove_dsp();
+    }
+
+    fn remove_dsp(&self) {
+        let intcaudio = "INTELAUDIO";
+        let c = "get-pnpdevice | \
+            where-object { $_.name -like '*High Definition DSP*' } | \
+            select-object -property instanceid";
+        if let Ok(s) = ps(c) {
+            let mut r = String::new();
+            for line in s.lines() {
+                if line.contains(intcaudio) {
+                    r = line.to_owned();
+                    break;
+                }
+            }
+            if !r.is_empty() {
+                self.log(
+                    "remove INTEL High Definition DSP", 
+                    self.opts.save_log, 
+                    true, 
+                    true
+                );
+                let c = format!("pnputil /remove-device \"{}\" /subtree", &r);
+                if let Ok(s) = cmd(&c) {
+                    self.log(&s, self.opts.save_log, true, true);
+                }
+                if let Ok(s) = cmd("pnputil /scan-devices") {
+                    self.log(&s, self.opts.save_log, true, true);
+                }
+            }
+        }
+    }
+
+    fn load_infs(&mut self) {
+        self.log_gui("enum drivers with pnputil.exe", true, true);
+        if let Ok(r) = cmd("pnputil /enum-drivers") {
+            self.drivers = r.to_string();
+        }
+        self.log_gui("enum devices with pnputil.exe", true, true);
+        if let Ok(r) = cmd("pnputil /enum-devices /relations").to_owned() {
+            self.devices = r.to_string();
+        }
+
+        self.log_gui("parse driver raw list", true, true);
+        self.parse_drivers();
+        
+        // log installed 3rd part drivers
+        for inf in &self.infs {
+            self.log_gui(&format!("{:?}", inf), false, false);
+        }
+    }
+
+    fn get_inf_list(&self) -> Result<String, String> {
+        let mut r = String::new();
+        if let Err(e) = 
+            self.get_file_list(&Path::new(&self.infs_path), &mut r) 
+        {
+            return Err(e.to_string());
+        } 
+        if r.is_empty() {
+            return Err(format!("No inf file name in {}", &self.infs_path));
+        }
+        Ok(r)
+    }
+
+    fn get_file_list(
+        &self, 
+        dir: &Path,
+        mut list: &mut String
+    ) -> Result<(), Box<dyn Error>> {
+        if dir.is_dir() {
+            match read_dir(dir) {
+                Ok(result) => {
+                    for entry in result {
+                        let entry = entry.unwrap();
+                        let path = entry.path();
+                        if path.is_dir() {
+                            self.get_file_list(&path, &mut list)?;
+                        } 
+                        else if let Some(ext) = path.extension() {
+                            if ext.eq_ignore_ascii_case("inf") {
+                                list.push_str(
+                                    &format!(
+                                        "{}\r\n", 
+                                        &path.file_name().unwrap().to_string_lossy()
+                                    )
+                                );
+                            }
+                        }
+                    }
+                },
+                Err(e) => {
+                    return Err(Box::new(e));
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -232,10 +377,12 @@ impl App {
         }
     }
 
-    fn on_uninstall(&self, list: &str) {
+    fn on_uninstall<'a, I>(&self, iter: I) 
+        where I: Iterator<Item = &'a str>
+    {
         let mut base_swcs: Vec<InfMetadata> = Vec::new();
         let mut exts: Vec<InfMetadata> = Vec::new();
-        for to_uninstall in list.lines() {
+        for to_uninstall in iter {
             if let Some(oem) = 
                 self.infs
                     .iter()
@@ -250,8 +397,21 @@ impl App {
                 }
             }
         }
-
+    
         self.proceed_uninstall(&base_swcs, &exts);
+    }
+
+    fn confirm_uninstall(&mut self) {
+        let question = HSTRING::from("要移除這些inf嗎?");
+        match pop_yesno(self.result_tb, &question) {
+            IDYES => {
+                self.opts.force = true;
+            },
+            IDNO => {
+                self.opts.force = false;
+            },
+            _ => {}
+        }
     }
 
     fn proceed_uninstall(
@@ -259,9 +419,14 @@ impl App {
         base_swcs: &[InfMetadata], 
         exts: &[InfMetadata],
     ) {
+        if base_swcs.is_empty() && exts.is_empty() {
+            self.log("No inf files are removed.", self.opts.save_log, true, true);
+            return;
+        }
+
         let to_proceed: Vec<String> = Self::list_publish_names(&base_swcs);
         let mut c = 0usize;
-        let mut msg = String::from("\n");
+        let mut msg = String::new();
         // pnputil.exe /delete-driver oemNumber /uninstall /force
         for inf in to_proceed.iter() {
             let org = self.infs.iter().find(|f| f.published_name == *inf).unwrap();
@@ -274,7 +439,7 @@ impl App {
             };
             c += 1;
             let m = format!(
-                "{}. uninstall {}={} of {} parent={}\n",
+                "{}. {}={} of {} parent={}\r\n",
                 c, inf, org.original_name, org.class_name, pa.clone()
             ); 
             msg.push_str(&m);
@@ -289,7 +454,7 @@ impl App {
         for inf in exts.iter() {
             c += 1;
             let m = format!( 
-                "{}. uninstall {}={} of {}\n", 
+                "{}. {}={} of {}\r\n", 
                 c, inf.published_name, inf.original_name, inf.class_name
             );
             msg.push_str(&m);
@@ -304,7 +469,25 @@ impl App {
             }
         }
         // list the results
-        self.log(&msg, self.opts.save_log, true, true);
+        match self.opts.force {
+            true => {
+                self.log(
+                    "The following inf files are removed.", 
+                    self.opts.save_log, 
+                    true, 
+                    true
+                );
+            },
+            false => {
+                self.log(
+                    "List the inf files:", 
+                    self.opts.save_log, 
+                    true, 
+                    true
+                );
+            }
+        }
+        self.log(&msg, self.opts.save_log, false, true);
     }
 
     fn list_publish_names(metadata_list: &[InfMetadata]) -> Vec<String> {
@@ -352,6 +535,7 @@ impl App {
         Ok(content)
     }
 
+
     fn log(
         &self,
         content: &str, 
@@ -359,35 +543,61 @@ impl App {
         add_time: bool, 
         on_screen: bool
     ) {
-        if on_screen {
-            let mut r: String = String::from(content);
-            if add_time {
-                let time_stamp = Local::now().format("%Y-%m%d_%H:%M:%S").to_string();
-                r.insert_str(
-                    0, 
-                    &format!("{}: ", &time_stamp)
-                );
+        match self.opts.gui_mode {
+            true => {
+                self.log_gui(content, add_time, on_screen);
+            },
+            false => {
+                self.log_console(content, save_file, add_time, on_screen);
             }
-            println!("{}", r);
-        }
-        if save_file {
-            Logger::log(content, &self.app_log, add_time).expect("Log to file failed.");
         }
     }
 
-    // fn on_show(&self, textbox: HWND, msg: &str) {
-    //     unsafe {
-    //         let _ = SetWindowTextW(textbox, str_to_pcwstr(msg));
-    //     }
-    // }
+    fn log_console(
+        &self,
+        content: &str, 
+        save_file: bool, 
+        add_time: bool, 
+        on_screen: bool
+    ) {
+        let mut r: String = String::from(content);
+        if add_time {
+            let time_stamp = Local::now().format("%Y-%m%d_%H:%M:%S").to_string();
+            r.insert_str(0, &format!("{}: ", &time_stamp));
+        }
+        if on_screen {
+            println!("{}", &r);
+        }
+        if save_file {
+            Logger::log(&r, &self.app_log).expect("Log to file failed.");
+        }
+    }
 
-    fn on_append(&self, textbox: HWND, msg: &str) {
+    fn log_gui(
+        &self,
+        content: &str, 
+        add_time: bool, 
+        on_screen: bool
+    ) {
+        if self.result_tb.is_invalid() {
+            return;
+        }
+        let mut r: String = String::from(content);
+        if add_time {
+            let time_stamp = Local::now().format("%Y-%m%d_%H:%M:%S").to_string();
+            r.insert_str(0, &format!("{}: ", &time_stamp));
+        }
+        if on_screen {
+            self.append_to_textbox(self.result_tb, &r);
+        }
+        Logger::log(&r, &self.app_log).expect("Log to file failed.");
+    }
+
+    fn append_to_textbox(&self, textbox: HWND, content: &str) {
         unsafe {
-            // Get current line count
-            let line_count = SendMessageW(textbox, EM_GETLINECOUNT, WPARAM(0), LPARAM(0));
-            
             // Get the length of text in the edit control
-            let text_length = SendMessageW(textbox, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0));
+            let text_length = 
+                SendMessageW(textbox, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0));
             // Set the selection to the end of the text
             // This effectively moves the caret to the end
             SendMessageW(
@@ -396,11 +606,18 @@ impl App {
                 WPARAM(text_length.0 as usize),
                 LPARAM(text_length.0)
             );
+            // Append content
+            let result_log = HSTRING::from(&format!("{}\r\n", content));
+            SendMessageW(
+                textbox, 
+                EM_REPLACESEL, 
+                WPARAM(1), 
+                LPARAM(result_log.as_ptr() as isize)
+            );
             
-            // Append new line
-            let new_line = w!("\r\nNew line added at timestamp: ");
-            SendMessageW(textbox, EM_REPLACESEL, WPARAM(1), LPARAM(new_line.as_ptr() as isize));
-            
+            // Get current line count
+            let line_count = 
+                SendMessageW(textbox, EM_GETLINECOUNT, WPARAM(0), LPARAM(0));
             // Scroll to bottom
             SendMessageW(textbox, EM_LINESCROLL, WPARAM(0), LPARAM(line_count.0));
         }

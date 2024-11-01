@@ -1,3 +1,8 @@
+--- GUI mode ---
+1. copy dchu-uninstall.exe to the driver package then double click to launch
+2. double click to launch
+3. click remove button to remove the inf name list in the driver package
+
 --- Command Mode ---
 1. run command as administrator directly.
     dchu-uninstall.exe -v -f inf_list_file.txt
@@ -7,6 +12,3 @@
 2. Run the uninstall.cmd batch file as administrator 
     a) copy dchu-uninstall.exe and uninstall.cmd to the driver folder
     b) run uninistall.cmd as administrator will uninstall the infs list in the driver folder
-
---- GUI mode ---
-double click to launch

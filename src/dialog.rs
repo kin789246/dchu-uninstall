@@ -77,3 +77,37 @@ pub fn file_open() -> Result<()> {
         Ok(())
     }
 }
+
+pub fn select_folder() -> Result<String> {
+    unsafe {
+        // Initialize COM
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+        
+        let file_dialog: IFileDialog = CoCreateInstance(
+            &FileOpenDialog,
+            None,
+            CLSCTX_ALL,
+        )?;
+
+        file_dialog.SetOptions(
+            FOS_PICKFOLDERS | 
+            FOS_NOVALIDATE | 
+            FOS_NOTESTFILECREATE | 
+            FOS_DONTADDTORECENT
+        )?;
+
+        let result = match file_dialog.Show(None) {
+            Ok(_) => {
+                let result: IShellItem = file_dialog.GetResult()?;
+                let path: PWSTR = result.GetDisplayName(SIGDN_FILESYSPATH)?;
+                path.to_string().unwrap_or_default()
+            },
+            Err(_) => {
+                String::new()
+            }
+        };
+
+        CoUninitialize();
+        Ok(result)
+    }
+}

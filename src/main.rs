@@ -40,3 +40,26 @@ fn set_dpiawareness_v2() {
             .unwrap();
     }
 }
+
+#[test]
+fn remove_dsp() {
+    use crate::exec_cmd::*;
+    let _intcaudio = "INTELAUDIO";
+    let cmd = "get-pnpdevice | \
+        where-object { $_.name -like '*High Definition*' } | \
+        select-object -property instanceid";
+    match ps(cmd) {
+        Ok(s) => {
+            let mut r = String::new();
+            for line in s.lines() {
+                if line.contains("HDAUDIO") {
+                    r = line.to_owned();
+                }
+            }
+            if !r.is_empty() {
+                println!("{r}");
+            }
+        },
+        Err(e) => println!("{}", &e)
+    }
+}
