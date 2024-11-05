@@ -12,10 +12,8 @@ use std::error::Error;
 use app::App;
 use options::Options;
 use window::Window;
-use windows::Win32::UI::HiDpi::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    set_dpiawareness_v2();
     let opts = Options::parse();
     let mut dchu_uninst = App::new(&opts);
     match opts.gui_mode {
@@ -31,13 +29,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         false => {
             return dchu_uninst.proceed();
         } 
-    }
-}
-
-fn set_dpiawareness_v2() {
-    unsafe {
-        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
-            .unwrap();
     }
 }
 

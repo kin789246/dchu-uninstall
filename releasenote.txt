@@ -1,3 +1,8 @@
+--- v2.2.0 ---
+a) request administrator execution level
+b) move dpi awareness to build.rs
+c) pop-up info message after completing uninstallation
+
 --- v2.1.0 ---
 a) gui mode support
 

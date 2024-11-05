@@ -63,11 +63,18 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "dchu-uninstall"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "chrono",
+ "embed-manifest",
  "windows",
 ]
+
+[[package]]
+name = "embed-manifest"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41cd446c890d6bed1d8b53acef5f240069ebef91d6fae7c5f52efe61fe8b5eae"
 
 [[package]]
 name = "iana-time-zone"

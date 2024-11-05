@@ -8,7 +8,7 @@ use std::{
 };
 use chrono::Local;
 use crate::{
-    dialog::pop_yesno, 
+    dialog::{pop_info, pop_yesno}, 
     error::{ AppError, Kind }, 
     exec_cmd::*, 
     inf_metadata::InfMetadata, 
@@ -151,13 +151,20 @@ impl App {
                 self.log_gui(&s, false, true);
                 self.confirm_uninstall();
                 self.on_uninstall(s.lines());
+                if self.opts.force {
+                    // find DSP device on RPL MTL series CPU and remove 
+                    // then re-scan for Intel SST OED
+                    self.remove_dsp();
+                    let info = HSTRING::from(
+                        "刪除完成\n請在Device Manager中確認driver已刪除"
+                    );
+                    pop_info(self.result_tb, &info);
+                }
             },
             Err(e) => {
                 self.log_gui(&e, true, true);
             }
         }
-        // find DSP device on RPL MTL series CPU and remove then re-scan for Intel SST OED
-        self.remove_dsp();
     }
 
     fn remove_dsp(&self) {
