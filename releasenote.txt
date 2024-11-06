@@ -1,3 +1,6 @@
+--- v2.2.1 ---
+a) add file version etc. to manifest assembly info
+
 --- v2.2.0 ---
 a) request administrator execution level
 b) move dpi awareness to build.rs

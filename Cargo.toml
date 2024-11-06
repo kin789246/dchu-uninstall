@@ -1,6 +1,6 @@
 [package]
 name = "dchu-uninstall"
-version = "2.2.0"
+version = "2.2.1"
 edition = "2021"
 
 [dependencies]
@@ -25,3 +25,4 @@ features = [
 
 [build-dependencies]
 embed-manifest = "1.4.0"
+winres = "0.1.12"
