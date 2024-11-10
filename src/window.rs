@@ -1,11 +1,21 @@
-use std::collections::HashMap;
-use std::mem::zeroed;
+use std::{
+    collections::HashMap,
+    mem::zeroed,
+    sync::{Arc, Mutex},
+};
 use windows::core::*;
 use windows::Foundation::*;
 use windows::Win32::{
     Foundation::*,
-    UI::{WindowsAndMessaging::*, Controls::*},
-    System::LibraryLoader::*,
+    UI::{
+        WindowsAndMessaging::*,
+        Controls::*,
+        Input::KeyboardAndMouse::*,
+    },
+    System::{
+        LibraryLoader::*,
+        DataExchange::COPYDATASTRUCT,
+    },
     Graphics::Gdi::*,
 };
 use crate::{
@@ -31,7 +41,10 @@ impl StrResource {
 
 #[derive(Default)]
 pub struct Window {
-    app_wnd: HWND,
+    main: HWND,
+    result_log: HWND,
+    progress_bar: HWND,
+    progress_txt: HWND,
     controls: HashMap<usize, Rect>,
     app: App,
     local: StrResource,
@@ -40,15 +53,21 @@ pub struct Window {
 }
 
 impl Window {
+    pub const APP_UPDATE_RESULT: u32 = WM_USER + 1;
+    pub const APP_UPDATE_PROGRESS: u32 = WM_USER + 2;
+    pub const APP_CONFIRM: u32 = WM_USER + 3;
+    pub const APP_POPUP_INFO: u32 = WM_USER + 4;
     const ID_BTN_PATH: usize = 1;
     const ID_BTN_REMOVE: usize = 2;
     const ID_TEXTBOX_RESULT: usize = 3;
     const ID_TEXTBOX_PATH: usize = 4;
+    const ID_PROGRESS_BAR: usize = 5;
+    const ID_PROGRESS_TXT: usize = 6;
     const BTN_WIDTH: f32 = 80.0;
     const ONELINE_HEIGHT: f32 = 30.0;
     const PADDING: f32 = 5.0;
 
-    pub fn new(title: &str, width: u32, height: u32, app: App) -> Result<Box<Self>> {
+    pub fn new(title: &str, width: u32, height: u32, app: App) -> Result<Self> {
         unsafe {
             let instance = GetModuleHandleW(None)?;
 
@@ -79,7 +98,7 @@ impl Window {
 
             let mut result = Box::new(
                 Self {
-                    app_wnd: HWND(std::ptr::null_mut()),
+                    main: HWND(std::ptr::null_mut()),
                     controls: HashMap::new(),
                     app,
                     local: StrResource::new(),
@@ -90,7 +109,7 @@ impl Window {
             );
 
             // create main window
-            result.app_wnd = CreateWindowExW(
+            result.main = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 window_class,
                 &HSTRING::from(title),
@@ -109,7 +128,7 @@ impl Window {
 
             while GetMessageW(&mut message, None, 0, 0).into() {
                 if !<BOOL as Into<bool>>::into(
-                    IsDialogMessageW(result.app_wnd, &mut message)
+                    IsDialogMessageW(result.main, &mut message)
                 ) {
                     // translates keystrokes (key down, key up) into characters
                     let _ = TranslateMessage(&message);
@@ -117,7 +136,7 @@ impl Window {
                 }
             }
 
-            Ok(result)
+            Ok(*result)
         }
     }
 
@@ -131,7 +150,7 @@ impl Window {
             if message == WM_NCCREATE {
                 let cs = lparam.0 as *const CREATESTRUCTW;
                 let this = (*cs).lpCreateParams as *mut Self;
-                (*this).app_wnd = window;
+                (*this).main = window;
 
                 SetWindowLongPtrW(window, GWLP_USERDATA, this as _);
             } else {
@@ -154,6 +173,7 @@ impl Window {
                 WM_CREATE => {
                     let _ = self.build_ui();
                     self.init();
+
                     LRESULT(0)
                 },
                 WM_DESTROY => {
@@ -174,7 +194,7 @@ impl Window {
                             self.on_path_btn();
                         },
                         Self::ID_BTN_REMOVE => {
-                            self.app.remove_btn_click();
+                            self.on_remove_btn();
                         },
                         _ => {
                             self.on_textbox(wparam); 
@@ -182,8 +202,121 @@ impl Window {
                     }
                     LRESULT(0)
                 },
-                _ => DefWindowProcW(self.app_wnd, message, wparam, lparam),
+                Self::APP_UPDATE_RESULT => {
+                    self.on_update_result(wparam); 
+                    LRESULT(0)
+                },
+                Self::APP_UPDATE_PROGRESS => {
+                    self.on_update_progress(wparam);
+                    LRESULT(0)
+                },
+                Self::APP_POPUP_INFO => {
+                    self.on_popup_info(wparam);
+                    LRESULT(0)
+                },
+                _ => DefWindowProcW(self.main, message, wparam, lparam),
             }
+        }
+    }
+
+    fn on_popup_info(&self, wparam: WPARAM) {
+        unsafe {
+            // Get COPYDATASTRUCT from WPARAM
+            let cds = &*(wparam.0 as *const COPYDATASTRUCT);
+            // Get MyData from COPYDATASTRUCT
+            let message = &*(cds.lpData as *const String);
+            // Handle the message from worker thread
+            let question = HSTRING::from(message);
+            pop_info(self.main, &question);
+        }
+    }
+
+    fn on_update_result(&self, wparam: WPARAM) {
+        unsafe {
+            // Get COPYDATASTRUCT from WPARAM
+            let cds = &*(wparam.0 as *const COPYDATASTRUCT);
+            // Get MyData from COPYDATASTRUCT
+            let data = &*(cds.lpData as *const String);
+            // Handle the message from worker thread
+            self.append_to_textbox(self.result_log, &data);
+        }
+    }
+
+    fn on_remove_btn(&self) {
+        let app = Arc::new(Mutex::new(self.app.clone()));
+        App::remove_btn_click(app);
+    }
+
+    fn enable_window(&self, id: u32, enable: bool) {
+        unsafe {
+            if let Ok(ctrl) = GetDlgItem(self.main, id as i32) {
+                let _ = EnableWindow(ctrl, BOOL(enable as i32));
+            }
+        }
+    }
+
+    fn on_update_progress(&self, wparam: WPARAM) {
+        // Handle the message from worker thread
+        unsafe {
+            // Get COPYDATASTRUCT from WPARAM
+            let cds = &*(wparam.0 as *const COPYDATASTRUCT);
+            // Get MyData from COPYDATASTRUCT
+            let progress = &*(cds.lpData as *const (usize, usize, String));
+            // update progress text
+            let text = HSTRING::from(&progress.2);
+            let _ = SetWindowTextW(self.progress_txt, hstr_to_pcwstr(&text));
+            // handle progress bar
+            // Get current position
+            // let current_pos = SendMessageW(
+            //     hwnd_progress, PBM_GETPOS, WPARAM(0), LPARAM(0)
+            // );
+            // Calculate new position (reset to 0 when reaching 100)
+            let pos = progress.0 as f32 / progress.1 as f32 * 100.0;
+            let new_pos = match pos <= 100.0 {
+                true => pos as usize,
+                false => 100
+            };
+            // Update progress bar
+            SendMessageW(
+                self.progress_bar, PBM_SETPOS, WPARAM(new_pos), LPARAM(0)
+            );
+            // enable remove button
+            if progress.0 == progress.1 {
+                self.enable_window(Self::ID_BTN_REMOVE as u32, true);
+            }
+        }
+    }
+
+    fn append_to_textbox(&self, textbox: HWND, content: &str) {
+        if content.is_empty() {
+            return;
+        }
+        unsafe {
+            // Get the length of text in the edit control
+            let text_length = 
+                SendMessageW(textbox, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0));
+            // Set the selection to the end of the text
+            // This effectively moves the caret to the end
+            SendMessageW(
+                textbox,
+                EM_SETSEL,
+                WPARAM(text_length.0 as usize),
+                LPARAM(text_length.0)
+            );
+            // Append content
+            let result_log = HSTRING::from(&format!("{}\r\n", content));
+            SendMessageW(
+                textbox, 
+                EM_REPLACESEL, 
+                WPARAM(1), 
+                LPARAM(result_log.as_ptr() as isize)
+            );
+            
+            // Get current line count
+            let line_count = 
+                SendMessageW(textbox, EM_GETLINECOUNT, WPARAM(0), LPARAM(0));
+            // Scroll to bottom
+            SendMessageW(textbox, EM_LINESCROLL, WPARAM(0), LPARAM(line_count.0));
         }
     }
 
@@ -198,7 +331,7 @@ impl Window {
                     Self::ID_TEXTBOX_PATH => {
                         unsafe {
                             if let Ok(control_hwnd) = 
-                                GetDlgItem(self.app_wnd, control_id as i32) 
+                                GetDlgItem(self.main, control_id as i32) 
                             {
                                 let text_length = 
                                     GetWindowTextLengthW(control_hwnd) + 1;
@@ -222,11 +355,11 @@ impl Window {
         unsafe {
             // repaint whole window
             let mut ps: PAINTSTRUCT = zeroed();
-            let hdc = BeginPaint(self.app_wnd, &mut ps);
+            let hdc = BeginPaint(self.main, &mut ps);
             let mut rect: RECT = zeroed();
-            GetClientRect(self.app_wnd, &mut rect).unwrap();
+            GetClientRect(self.main, &mut rect).unwrap();
             FillRect(hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
-            EndPaint(self.app_wnd, &ps).unwrap();
+            EndPaint(self.main, &ps).unwrap();
         }
         // redraw controls
         self.update_position();
@@ -257,8 +390,57 @@ impl Window {
                 path_tb_rect.Y as i32,
                 path_tb_rect.Width as i32,
                 path_tb_rect.Height as i32,
-                self.app_wnd,
+                self.main,
                 HMENU(Self::ID_TEXTBOX_PATH as _),
+                instance,
+                None,
+            )?;
+
+            // Create progress bar
+            let progress_bar_rect = Rect {
+                X: Self::PADDING, 
+                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
+                Width: self.width as f32 - Self::PADDING * 2.0, 
+                Height: Self::ONELINE_HEIGHT 
+            };
+            self.controls.insert(Self::ID_PROGRESS_BAR, progress_bar_rect);
+            self.progress_bar = CreateWindowExW(
+                WINDOW_EX_STYLE::default(),
+                w!("msctls_progress32"),
+                w!(""),
+                WINDOW_STYLE( WS_CHILD.0 | WS_VISIBLE.0),
+                progress_bar_rect.X as i32,
+                progress_bar_rect.Y as i32,
+                progress_bar_rect.Width as i32,
+                progress_bar_rect.Height as i32,
+                self.main,
+                HMENU(Self::ID_PROGRESS_BAR as _),
+                instance,
+                None,
+            )?;
+
+            // Initialize progress bar
+            SendMessageW(self.progress_bar, PBM_SETRANGE32, WPARAM(0), LPARAM(100));
+
+            // Create progress txt
+            let progress_txt_rect = Rect {
+                X: Self::PADDING, 
+                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
+                Width: self.width as f32 - Self::PADDING * 2.0, 
+                Height: Self::ONELINE_HEIGHT 
+            };
+            self.controls.insert(Self::ID_PROGRESS_TXT, progress_txt_rect);
+            self.progress_txt = CreateWindowExW(
+                WINDOW_EX_STYLE::default(),
+                w!("EDIT"),
+                w!(""),
+                WINDOW_STYLE( WS_CHILD.0 | WS_VISIBLE.0 | ES_READONLY as u32),
+                progress_txt_rect.X as i32,
+                progress_txt_rect.Y as i32,
+                progress_txt_rect.Width as i32,
+                progress_txt_rect.Height as i32,
+                self.main,
+                HMENU(Self::ID_PROGRESS_TXT as _),
                 instance,
                 None,
             )?;
@@ -266,15 +448,14 @@ impl Window {
             // Create result textbox
             let result_tb_rect = Rect {
                 X: Self::PADDING, 
-                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
+                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT *2.0 + Self::PADDING * 2.0, 
                 Width: self.width as f32 - Self::PADDING * 2.0, 
                 Height: self.height as f32 - 
-                    Self::ONELINE_HEIGHT - 
-                    path_tb_rect.Y - 
-                    Self::PADDING * 2.0
+                    Self::ONELINE_HEIGHT * 2.0 - 
+                    Self::PADDING * 4.0
             };
             self.controls.insert(Self::ID_TEXTBOX_RESULT, result_tb_rect);
-            CreateWindowExW(
+            self.result_log = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 w!("EDIT"),
                 w!(""),
@@ -291,7 +472,7 @@ impl Window {
                 result_tb_rect.Y as i32,
                 result_tb_rect.Width as i32,
                 result_tb_rect.Height as i32,
-                self.app_wnd,
+                self.main,
                 HMENU(Self::ID_TEXTBOX_RESULT as _),
                 instance,
                 None,
@@ -314,7 +495,7 @@ impl Window {
                 path_btn_rect.Y as i32,
                 path_btn_rect.Width as i32,
                 path_btn_rect.Height as i32,
-                self.app_wnd,
+                self.main,
                 HMENU(Self::ID_BTN_PATH as _),
                 instance,
                 None,
@@ -337,7 +518,7 @@ impl Window {
                 remove_btn_rect.Y as i32,
                 remove_btn_rect.Width as i32,
                 remove_btn_rect.Height as i32,
-                self.app_wnd,
+                self.main,
                 HMENU(Self::ID_BTN_REMOVE as _),
                 instance,
                 None,
@@ -354,11 +535,17 @@ impl Window {
         // update path textbox
         let path_tb_rect = self.controls.get_mut(&Self::ID_TEXTBOX_PATH).unwrap();
         path_tb_rect.Width = width as f32 - Self::BTN_WIDTH * 2.0 - Self::PADDING * 4.0;
+        // update progress bar
+        let progress_bar_rect = self.controls.get_mut(&Self::ID_PROGRESS_BAR).unwrap();
+        progress_bar_rect.Width = width as f32 - Self::PADDING * 2.0; 
+        // update progress txt
+        let progress_txt_rect = self.controls.get_mut(&Self::ID_PROGRESS_TXT).unwrap();
+        progress_txt_rect.Width = width as f32 - Self::PADDING * 2.0; 
         // update result textbox
         let path_tb_rect = self.controls.get(&Self::ID_TEXTBOX_PATH).cloned().unwrap();
         let rect = self.controls.get_mut(&Self::ID_TEXTBOX_RESULT).unwrap();
-        rect.Width = width as f32 - 10.0; 
-        rect.Height = height as f32 - 15.0 - path_tb_rect.Height;
+        rect.Width = width as f32 - Self::PADDING * 2.0; 
+        rect.Height = height as f32 - Self::PADDING * 4.0 - Self::ONELINE_HEIGHT * 2.0;
         // update path button
         let rect = self.controls.get_mut(&Self::ID_BTN_PATH).unwrap();
         rect.X = path_tb_rect.X + path_tb_rect.Width + Self::PADDING;
@@ -370,7 +557,7 @@ impl Window {
     fn update_position(&self) {
         unsafe {
             self.controls.iter().for_each(|(id, rect)| {
-                if let Ok(hwnd) = GetDlgItem(self.app_wnd, *id as i32) {
+                if let Ok(hwnd) = GetDlgItem(self.main, *id as i32) {
                     let _ = SetWindowPos(
                         hwnd,
                         None,
@@ -382,7 +569,7 @@ impl Window {
                     );
                 }
                 // scroll path textbox to start position 
-                if let Ok(hwnd) = GetDlgItem(self.app_wnd, Self::ID_TEXTBOX_PATH as i32) {
+                if let Ok(hwnd) = GetDlgItem(self.main, Self::ID_TEXTBOX_PATH as i32) {
                     SendMessageW(hwnd, EM_SETSEL, WPARAM(0), LPARAM(0));
                 }
             });
@@ -403,23 +590,16 @@ impl Window {
     fn set_path_text(&self, path: &HSTRING) {
         unsafe {
             if let Ok(textbox) = 
-                GetDlgItem(self.app_wnd, Self::ID_TEXTBOX_PATH as i32) 
+                GetDlgItem(self.main, Self::ID_TEXTBOX_PATH as i32) 
             {
-                let _ = SetWindowTextW(textbox, hstr_to_pcwstr(&path));
+                let _ = SetWindowTextW(textbox, hstr_to_pcwstr(path));
             }
         }
     }
 
     fn init(&mut self) {
-        unsafe {
-            self.set_path_text(&self.app.get_infs_path());
-            if let Ok(textbox) = 
-                GetDlgItem(self.app_wnd, Self::ID_TEXTBOX_RESULT as i32) 
-            {
-                self.app.set_result_tb(&textbox);
-                self.app.init_gui();
-            }
-        }
+        self.set_path_text(&self.app.get_infs_path());
+        self.app.init_gui(self.main);
     }
 
     fn loword(l: isize) -> isize {

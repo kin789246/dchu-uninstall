@@ -5,25 +5,20 @@ pub mod exec_cmd;
 pub mod inf_metadata;
 pub mod logger;
 pub mod options;
+pub mod thread_safe;
 pub mod win_str;
 pub mod window;
   
 use std::error::Error;
 use app::App;
 use options::Options;
-use window::Window;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let opts = Options::parse();
     let mut dchu_uninst = App::new(&opts);
     match opts.gui_mode {
         true => {
-            let _ = Window::new(
-                &dchu_uninst.get_version(), 
-                800, 
-                600, 
-                dchu_uninst
-            ).unwrap();
+            App::run(dchu_uninst);
             return Ok(())
         },
         false => {

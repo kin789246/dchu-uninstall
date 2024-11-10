@@ -1,27 +1,31 @@
 use std::{
-    collections::{HashMap, VecDeque}, 
+    collections::{HashMap, VecDeque},
     error::Error, 
-    fs::{File, read_dir}, 
+    fs::{read_dir, File},
     io::Read,
-    result::Result,
-    path::Path,
+    path::Path, 
+    sync::{Arc, Mutex},
+    thread,
+    mem,
 };
 use chrono::Local;
 use crate::{
-    dialog::{pop_info, pop_yesno}, 
+    dialog::*, 
     error::{ AppError, Kind }, 
     exec_cmd::*, 
     inf_metadata::InfMetadata, 
     logger::Logger, 
-    options::Options 
+    options::Options, 
+    thread_safe::ThreadSafeHwnd, 
+    win_str::str_to_hstring, 
+    window::*
 };
 use windows::{
-    core::*, 
+    core::HSTRING,
     Win32::{
         Foundation::*,
-        UI::{
-            Controls::*, WindowsAndMessaging::*
-        }
+        UI::WindowsAndMessaging::*,
+        System::DataExchange::COPYDATASTRUCT,
     }
 };
 
@@ -35,7 +39,7 @@ pub struct App {
     help: String,
     infs_path: String,
     infs: Vec<InfMetadata>,
-    result_tb: HWND,
+    window: Option<ThreadSafeHwnd>,
 }
 
 impl App {
@@ -64,8 +68,9 @@ impl App {
         }
     }
 
-    pub fn get_version(&self) -> String {
-        self.version.clone()
+    pub fn run(app: App) {
+        let version = app.version.clone();
+        Window::new(&version, 800, 600, app).unwrap();
     }
 
     pub fn set_path(&mut self, path: &str) {
@@ -74,10 +79,6 @@ impl App {
 
     pub fn get_infs_path(&self) -> HSTRING {
         HSTRING::from(&self.infs_path)
-    }
-
-    pub fn set_result_tb(&mut self, hwnd: &HWND) {
-        self.result_tb = hwnd.clone();
     }
 
     pub fn proceed(&mut self) -> Result<(), Box<dyn Error>> {
@@ -132,39 +133,42 @@ impl App {
         Ok(())
     }
 
-    pub fn init_gui(&mut self) {
+    pub fn init_gui(&mut self, hwnd: HWND) {
+        self.window = Some(ThreadSafeHwnd(hwnd));
         self.log_gui(&self.version, false, true);
         self.log_gui("\r\nREADY TO GO", false, true);
     }
 
-    pub fn remove_btn_click(&mut self) {
-        if self.infs.is_empty() {
-            self.load_infs();
-        }
-        self.log_gui(
-            &format!("get inf files list from {}", &self.infs_path), 
-            true, 
-            true
-        );
-        match self.get_inf_list() {
-            Ok(s) => {
-                self.log_gui(&s, false, true);
-                self.confirm_uninstall();
-                self.on_uninstall(s.lines());
-                if self.opts.force {
-                    // find DSP device on RPL MTL series CPU and remove 
-                    // then re-scan for Intel SST OED
-                    self.remove_dsp();
-                    let info = HSTRING::from(
-                        "刪除完成\n請在Device Manager中確認driver已刪除"
-                    );
-                    pop_info(self.result_tb, &info);
-                }
-            },
-            Err(e) => {
-                self.log_gui(&e, true, true);
+    pub fn remove_btn_click(app: Arc<Mutex<Self>>) {
+        let app = app.clone();
+        thread::spawn(move || {
+            let mut app = app.lock().unwrap();
+            if app.infs.is_empty() {
+                app.load_infs();
             }
-        }
+            app.log_gui(
+                &format!("get inf files list from {}", &app.infs_path), 
+                true, 
+                true
+            );
+            match app.get_inf_list() {
+                Ok(s) => {
+                    app.log_gui(&s, false, true);
+                    app.confirm_uninstall();
+                    app.on_uninstall(s.lines());
+                    if app.opts.force {
+                        // find DSP device on RPL MTL series CPU and remove 
+                        // then re-scan for Intel SST OED
+                        app.remove_dsp();
+                        let info = "刪除完成\n請在Device Manager中確認driver已刪除";
+                        app.post_message(Window::APP_POPUP_INFO, info.to_owned());
+                    }
+                },
+                Err(e) => {
+                    app.log_gui(&e, true, true);
+                }
+            }
+        });
     }
 
     fn remove_dsp(&self) {
@@ -409,8 +413,9 @@ impl App {
     }
 
     fn confirm_uninstall(&mut self) {
-        let question = HSTRING::from("要移除這些inf嗎?");
-        match pop_yesno(self.result_tb, &question) {
+        let main = self.window.clone().unwrap();
+        let question = str_to_hstring("要移除這些inf嗎?");
+        match pop_yesno(main.0, &question) {
             IDYES => {
                 self.opts.force = true;
             },
@@ -419,6 +424,7 @@ impl App {
             },
             _ => {}
         }
+        // self.post_message(Window::APP_CONFIRM, question);
     }
 
     fn proceed_uninstall(
@@ -432,7 +438,9 @@ impl App {
         }
 
         let to_proceed: Vec<String> = Self::list_publish_names(&base_swcs);
-        let mut c = 0usize;
+        let total = to_proceed.len() + exts.len();
+        let mut progress: (usize, usize, String);
+        let mut curr = 0usize;
         let mut msg = String::new();
         // pnputil.exe /delete-driver oemNumber /uninstall /force
         for inf in to_proceed.iter() {
@@ -444,10 +452,10 @@ impl App {
                 Some(s) => s.original_name.clone(),
                 None => "none".to_owned()
             };
-            c += 1;
+            curr += 1;
             let m = format!(
                 "{}. {}={} of {} parent={}\r\n",
-                c, inf, org.original_name, org.class_name, pa.clone()
+                curr, inf, org.original_name, org.class_name, pa.clone()
             ); 
             msg.push_str(&m);
             if self.opts.force {
@@ -455,14 +463,16 @@ impl App {
                 let c = format!("pnputil /delete-driver {} /uninstall", &inf);
                 let res = cmd(&c);
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                progress = (curr, total, format!("{}/{}", curr, total));
+                self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
         }
 
         for inf in exts.iter() {
-            c += 1;
+            curr += 1;
             let m = format!( 
                 "{}. {}={} of {}\r\n", 
-                c, inf.published_name, inf.original_name, inf.class_name
+                curr, inf.published_name, inf.original_name, inf.class_name
             );
             msg.push_str(&m);
             if self.opts.force {
@@ -473,6 +483,8 @@ impl App {
                 );
                 let res = cmd(&c);
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                progress = (curr, total, format!("{}/{}", curr, total));
+                self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
         }
         // list the results
@@ -542,6 +554,28 @@ impl App {
         Ok(content)
     }
 
+    fn post_message<T>(&self, msg: u32, data: T) {
+        unsafe {
+            let mut data = Box::new(data);
+            let cds = COPYDATASTRUCT {
+                dwData: 1, // Custom identifier
+                cbData: mem::size_of::<T>() as u32,
+                lpData: data.as_mut() as *mut _ as *mut core::ffi::c_void,
+            };
+
+            // Send with WM_USER
+            if let Some(hwnd) = self.window.clone() {
+                let hwnd = hwnd.0;
+                // let _ = PostMessageW(hwnd, msg, WPARAM(0), LPARAM(0));
+                let _ = SendMessageW(
+                    hwnd,
+                    msg,
+                    WPARAM(&cds as *const _ as usize),
+                    LPARAM(0)
+                );
+            }
+        }
+    }
 
     fn log(
         &self,
@@ -586,47 +620,14 @@ impl App {
         add_time: bool, 
         on_screen: bool
     ) {
-        if self.result_tb.is_invalid() {
-            return;
-        }
-        let mut r: String = String::from(content);
+        let mut r = String::from(content);
         if add_time {
             let time_stamp = Local::now().format("%Y-%m%d_%H:%M:%S").to_string();
             r.insert_str(0, &format!("{}: ", &time_stamp));
         }
         if on_screen {
-            self.append_to_textbox(self.result_tb, &r);
+            self.post_message(Window::APP_UPDATE_RESULT, r.clone());
         }
         Logger::log(&r, &self.app_log).expect("Log to file failed.");
-    }
-
-    fn append_to_textbox(&self, textbox: HWND, content: &str) {
-        unsafe {
-            // Get the length of text in the edit control
-            let text_length = 
-                SendMessageW(textbox, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0));
-            // Set the selection to the end of the text
-            // This effectively moves the caret to the end
-            SendMessageW(
-                textbox,
-                EM_SETSEL,
-                WPARAM(text_length.0 as usize),
-                LPARAM(text_length.0)
-            );
-            // Append content
-            let result_log = HSTRING::from(&format!("{}\r\n", content));
-            SendMessageW(
-                textbox, 
-                EM_REPLACESEL, 
-                WPARAM(1), 
-                LPARAM(result_log.as_ptr() as isize)
-            );
-            
-            // Get current line count
-            let line_count = 
-                SendMessageW(textbox, EM_GETLINECOUNT, WPARAM(0), LPARAM(0));
-            // Scroll to bottom
-            SendMessageW(textbox, EM_LINESCROLL, WPARAM(0), LPARAM(line_count.0));
-        }
     }
 }
