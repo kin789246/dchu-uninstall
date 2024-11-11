@@ -1,5 +1,5 @@
 --- GUI mode ---
-1. copy dchu-uninstall.exe to the driver package then double click to launch
+1. copy dchu-uninstall.exe to the driver package will set default path under the folder
 2. double click to launch
 3. click remove button to remove the inf name list in the driver package
 

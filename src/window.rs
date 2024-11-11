@@ -11,6 +11,7 @@ use windows::Win32::{
         WindowsAndMessaging::*,
         Controls::*,
         Input::KeyboardAndMouse::*,
+        HiDpi::GetDpiForWindow,
     },
     System::{
         LibraryLoader::*,
@@ -46,12 +47,18 @@ pub struct Window {
     result_log: HWND,
     progress_bar: HWND,
     progress_txt: HWND,
+    path_txt: HWND,
     controls: HashMap<usize, Rect>,
     app: App,
     local: StrResource,
     width: u32,
     height: u32,
     removing: bool,
+    scale_factor: f32,
+    btn_width: f32,
+    progress_txt_width: f32,
+    oneline_height: f32,
+    padding: f32,
 }
 
 impl Window {
@@ -66,10 +73,6 @@ impl Window {
     const ID_TEXTBOX_PATH: usize = 4;
     const ID_PROGRESS_BAR: usize = 5;
     const ID_PROGRESS_TXT: usize = 6;
-    const BTN_WIDTH: f32 = 80.0;
-    const PROGRESS_TXT_WIDTH: f32 = 80.0;
-    const ONELINE_HEIGHT: f32 = 24.0;
-    const PADDING: f32 = 5.0;
 
     pub fn new(title: &str, width: u32, height: u32, app: App) -> Result<Self> {
         unsafe {
@@ -108,6 +111,10 @@ impl Window {
                     local: StrResource::new(),
                     width,
                     height,
+                    btn_width: 80.0,
+                    progress_txt_width: 80.0,
+                    oneline_height: 24.0,
+                    padding: 5.0,
                     ..Default::default()
                 }
             );
@@ -175,8 +182,10 @@ impl Window {
         unsafe {
             match message {
                 WM_CREATE => {
+                    self.set_window();
                     let _ = self.build_ui();
-                    self.init();
+                    self.set_ctrl_font();
+                    self.init_gui();
 
                     LRESULT(0)
                 },
@@ -228,6 +237,89 @@ impl Window {
                 },
                 _ => DefWindowProcW(self.main, message, wparam, lparam),
             }
+        }
+    }
+
+    fn set_ctrl_font(&mut self) {
+        unsafe {
+            // Create a scaled font
+            let font_height = -((14.0 * self.scale_factor) as i32); // 14 point font
+            let font = CreateFontW(
+                font_height,              // Height
+                0,                        // Width (0 = auto)
+                0,                        // Escapement
+                0,                        // Orientation
+                FW_NORMAL.0 as _,        // Weight
+                0,                        // Italic
+                0,                        // Underline
+                0,                        // StrikeOut
+                ANSI_CHARSET.0 as _,     // CharSet
+                OUT_TT_PRECIS.0 as _,    // OutPrecision
+                CLIP_DEFAULT_PRECIS.0 as _, // ClipPrecision
+                CLEARTYPE_QUALITY.0 as _, // Quality
+                DEFAULT_PITCH.0 as _,     // PitchAndFamily
+                w!("Segoe UI"),          // Face Name
+            );
+            // Set font for both controls
+            SendMessageW(
+                self.path_txt, 
+                WM_SETFONT, 
+                WPARAM(font.0 as usize),
+                LPARAM(1)
+            );
+            SendMessageW(
+                self.progress_txt, 
+                WM_SETFONT, 
+                WPARAM(font.0 as usize),
+                LPARAM(1)
+            );
+            SendMessageW(
+                self.result_log, 
+                WM_SETFONT, 
+                WPARAM(font.0 as usize),
+                LPARAM(1)
+            );
+            if let Ok(hwnd) = GetDlgItem(self.main, Self::ID_BTN_PATH as i32) {
+                SendMessageW(
+                    hwnd, 
+                    WM_SETFONT, 
+                    WPARAM(font.0 as usize),
+                    LPARAM(1)
+                );
+            }
+            if let Ok(hwnd) = GetDlgItem(self.main, Self::ID_BTN_REMOVE as i32) {
+                SendMessageW(
+                    hwnd, 
+                    WM_SETFONT, 
+                    WPARAM(font.0 as usize),
+                    LPARAM(1)
+                );
+            }
+        }
+    }
+
+    fn set_window(&mut self) {
+        unsafe {
+            // Get the DPI for the window
+            let dpi = GetDpiForWindow(self.main);
+            self.scale_factor = dpi as f32 / 96.0; // 96 is the default DPI
+            let (w, h) = (self.width as f32, self.height as f32);
+            self.width = (w * self.scale_factor) as u32;
+            self.height = (h * self.scale_factor) as u32;
+            // scale the window size
+            let _ = SetWindowPos(
+                self.main, 
+                None, 
+                0, 
+                0, 
+                self.width as i32, 
+                self.height as i32, 
+                SWP_NOMOVE
+            );
+            self.btn_width *= self.scale_factor;
+            self.progress_txt_width *= self.scale_factor;
+            self.oneline_height *= self.scale_factor;
+            self.padding *= self.scale_factor;
         }
     }
 
@@ -408,13 +500,13 @@ impl Window {
             let instance = GetModuleHandleW(None)?;
             // Create path textbox
             let path_tb_rect = Rect {
-                X: Self::PADDING, 
-                Y: Self::PADDING, 
-                Width: self.width as f32 - Self::BTN_WIDTH * 2.0 - Self::PADDING * 4.0, 
-                Height: Self::ONELINE_HEIGHT
+                X: self.padding, 
+                Y: self.padding, 
+                Width: self.width as f32 - self.btn_width * 2.0 - self.padding * 4.0, 
+                Height: self.oneline_height
             };
             self.controls.insert(Self::ID_TEXTBOX_PATH, path_tb_rect);
-            CreateWindowExW(
+            self.path_txt = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 w!("EDIT"),
                 w!(""),
@@ -437,10 +529,10 @@ impl Window {
 
             // Create progress bar
             let progress_bar_rect = Rect {
-                X: Self::PADDING, 
-                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
-                Width: self.width as f32 - Self::PADDING * 2.0 - Self::PROGRESS_TXT_WIDTH, 
-                Height: Self::ONELINE_HEIGHT 
+                X: self.padding, 
+                Y: path_tb_rect.Y + self.oneline_height + self.padding, 
+                Width: self.width as f32 - self.padding * 2.0 - self.progress_txt_width, 
+                Height: self.oneline_height 
             };
             self.controls.insert(Self::ID_PROGRESS_BAR, progress_bar_rect);
             self.progress_bar = CreateWindowExW(
@@ -464,9 +556,9 @@ impl Window {
             // Create progress txt
             let progress_txt_rect = Rect {
                 X: progress_bar_rect.X + progress_bar_rect.Width, 
-                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
-                Width: Self::PROGRESS_TXT_WIDTH, 
-                Height: Self::ONELINE_HEIGHT 
+                Y: path_tb_rect.Y + self.oneline_height + self.padding, 
+                Width: self.progress_txt_width, 
+                Height: self.oneline_height 
             };
             self.controls.insert(Self::ID_PROGRESS_TXT, progress_txt_rect);
             self.progress_txt = CreateWindowExW(
@@ -493,12 +585,12 @@ impl Window {
 
             // Create result textbox
             let result_tb_rect = Rect {
-                X: Self::PADDING, 
-                Y: path_tb_rect.Y + Self::ONELINE_HEIGHT *2.0 + Self::PADDING * 2.0, 
-                Width: self.width as f32 - Self::PADDING * 2.0, 
+                X: self.padding, 
+                Y: path_tb_rect.Y + self.oneline_height *2.0 + self.padding * 2.0, 
+                Width: self.width as f32 - self.padding * 2.0, 
                 Height: self.height as f32 - 
-                    Self::ONELINE_HEIGHT * 2.0 - 
-                    Self::PADDING * 4.0
+                    self.oneline_height * 2.0 - 
+                    self.padding * 4.0
             };
             self.controls.insert(Self::ID_TEXTBOX_RESULT, result_tb_rect);
             self.result_log = CreateWindowExW(
@@ -523,13 +615,15 @@ impl Window {
                 instance,
                 None,
             )?;
+            //set default max words (64k)
+            SendMessageW(self.result_log, EM_LIMITTEXT, WPARAM(0), LPARAM(0));
 
             // Create path button
             let path_btn_rect = Rect {
-                X: path_tb_rect.X + path_tb_rect.Width + Self::PADDING, 
+                X: path_tb_rect.X + path_tb_rect.Width + self.padding, 
                 Y: path_tb_rect.Y, 
-                Width: Self::BTN_WIDTH, 
-                Height: Self::ONELINE_HEIGHT
+                Width: self.btn_width, 
+                Height: self.oneline_height
             };
             self.controls.insert(Self::ID_BTN_PATH, path_btn_rect);
             CreateWindowExW(
@@ -549,10 +643,10 @@ impl Window {
 
             // Create remove button
             let remove_btn_rect = Rect {
-                X: path_btn_rect.X + path_btn_rect.Width + Self::PADDING, 
+                X: path_btn_rect.X + path_btn_rect.Width + self.padding, 
                 Y: path_tb_rect.Y, 
-                Width: Self::BTN_WIDTH, 
-                Height: Self::ONELINE_HEIGHT
+                Width: self.btn_width, 
+                Height: self.oneline_height
             };
             self.controls.insert(Self::ID_BTN_REMOVE, remove_btn_rect);
             CreateWindowExW(
@@ -569,17 +663,6 @@ impl Window {
                 instance,
                 None,
             )?;
-
-            // // Set the window to be on top
-            // SetWindowPos(
-            //     self.progress_txt,
-            //     HWND_TOPMOST,
-            //     0,
-            //     0,
-            //     0,
-            //     0,
-            //     SWP_NOMOVE | SWP_NOSIZE,
-            // )?;
         }
         Ok(())
     }
@@ -591,10 +674,10 @@ impl Window {
         let (width, height) = (Self::loword(lparam.0), Self::hiword(lparam.0));
         // update path textbox
         let path_tb_rect = self.controls.get_mut(&Self::ID_TEXTBOX_PATH).unwrap();
-        path_tb_rect.Width = width as f32 - Self::BTN_WIDTH * 2.0 - Self::PADDING * 4.0;
+        path_tb_rect.Width = width as f32 - self.btn_width * 2.0 - self.padding * 4.0;
         // update progress bar
         let progress_bar_rect = self.controls.get_mut(&Self::ID_PROGRESS_BAR).unwrap();
-        progress_bar_rect.Width = width as f32 - Self::PADDING * 2.0 - Self::PROGRESS_TXT_WIDTH; 
+        progress_bar_rect.Width = width as f32 - self.padding * 2.0 - self.progress_txt_width; 
         // update progress txt
         let progress_bar_rect = self.controls.get(&Self::ID_PROGRESS_BAR).cloned().unwrap();
         let progress_txt_rect = self.controls.get_mut(&Self::ID_PROGRESS_TXT).unwrap();
@@ -602,14 +685,14 @@ impl Window {
         // update result textbox
         let path_tb_rect = self.controls.get(&Self::ID_TEXTBOX_PATH).cloned().unwrap();
         let rect = self.controls.get_mut(&Self::ID_TEXTBOX_RESULT).unwrap();
-        rect.Width = width as f32 - Self::PADDING * 2.0; 
-        rect.Height = height as f32 - Self::PADDING * 4.0 - Self::ONELINE_HEIGHT * 2.0;
+        rect.Width = width as f32 - self.padding * 2.0; 
+        rect.Height = height as f32 - self.padding * 4.0 - self.oneline_height * 2.0;
         // update path button
         let rect = self.controls.get_mut(&Self::ID_BTN_PATH).unwrap();
-        rect.X = path_tb_rect.X + path_tb_rect.Width + Self::PADDING;
+        rect.X = path_tb_rect.X + path_tb_rect.Width + self.padding;
         // update remove button
         let rect = self.controls.get_mut(&Self::ID_BTN_REMOVE).unwrap();
-        rect.X = path_tb_rect.X + path_tb_rect.Width + Self::BTN_WIDTH + Self::PADDING * 2.0;
+        rect.X = path_tb_rect.X + path_tb_rect.Width + self.btn_width + self.padding * 2.0;
     }
 
     fn update_position(&self) {
@@ -647,15 +730,11 @@ impl Window {
 
     fn set_path_text(&self, path: &HSTRING) {
         unsafe {
-            if let Ok(textbox) = 
-                GetDlgItem(self.main, Self::ID_TEXTBOX_PATH as i32) 
-            {
-                let _ = SetWindowTextW(textbox, hstr_to_pcwstr(path));
-            }
+            let _ = SetWindowTextW(self.path_txt, hstr_to_pcwstr(path));
         }
     }
 
-    fn init(&mut self) {
+    fn init_gui(&mut self) {
         self.set_path_text(&self.app.get_infs_path());
         self.app.init_gui(self.main);
     }

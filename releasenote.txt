@@ -1,3 +1,9 @@
+--- v2.3.0 ---
+a) add progress bar
+b) add multithreads
+c) detect Winodow Scale
+d) fix minor issues
+
 --- v2.2.1 ---
 a) add file version etc. to manifest assembly info
 
