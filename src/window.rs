@@ -224,10 +224,14 @@ impl Window {
             // Get COPYDATASTRUCT from WPARAM
             let cds = &*(wparam.0 as *const COPYDATASTRUCT);
             // Get MyData from COPYDATASTRUCT
-            let message = &*(cds.lpData as *const String);
+            let message = &*(cds.lpData as *const (bool, String));
             // Handle the message from worker thread
-            let question = HSTRING::from(message);
+            let question = HSTRING::from(&message.1);
             pop_info(self.main, &question);
+            // enable remove button
+            if message.0 {
+                self.enable_window(Self::ID_BTN_REMOVE as u32, true);
+            }
         }
     }
 
@@ -245,6 +249,7 @@ impl Window {
     fn on_remove_btn(&self) {
         let app = Arc::new(Mutex::new(self.app.clone()));
         App::remove_btn_click(app);
+        self.enable_window(Self::ID_BTN_REMOVE as u32, false);
     }
 
     fn enable_window(&self, id: u32, enable: bool) {
@@ -280,10 +285,6 @@ impl Window {
             SendMessageW(
                 self.progress_bar, PBM_SETPOS, WPARAM(new_pos), LPARAM(0)
             );
-            // enable remove button
-            if progress.0 == progress.1 {
-                self.enable_window(Self::ID_BTN_REMOVE as u32, true);
-            }
         }
     }
 

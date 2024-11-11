@@ -1,12 +1,13 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, VecDeque}, 
     error::Error, 
-    fs::{read_dir, File},
-    io::Read,
+    fs::{read_dir, File}, 
+    io::Read, 
+    mem, 
     path::Path, 
-    sync::{Arc, Mutex},
-    thread,
-    mem,
+    sync::{Arc, Mutex}, 
+    thread, 
+    time::Duration
 };
 use chrono::Local;
 use crate::{
@@ -156,13 +157,6 @@ impl App {
                     app.log_gui(&s, false, true);
                     app.confirm_uninstall();
                     app.on_uninstall(s.lines());
-                    if app.opts.force {
-                        // find DSP device on RPL MTL series CPU and remove 
-                        // then re-scan for Intel SST OED
-                        app.remove_dsp();
-                        let info = "刪除完成\n請在Device Manager中確認driver已刪除";
-                        app.post_message(Window::APP_POPUP_INFO, info.to_owned());
-                    }
                 },
                 Err(e) => {
                     app.log_gui(&e, true, true);
@@ -211,6 +205,10 @@ impl App {
         if let Ok(r) = cmd("pnputil /enum-devices /relations").to_owned() {
             self.devices = r.to_string();
         }
+
+        // // debug
+        // self.drivers = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\drivers-mtl-h.txt").unwrap();
+        // self.devices = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\relations-mtl-h.txt").unwrap();
 
         self.log_gui("parse driver raw list", true, true);
         self.parse_drivers();
@@ -463,6 +461,8 @@ impl App {
                 let c = format!("pnputil /delete-driver {} /uninstall", &inf);
                 let res = cmd(&c);
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                // //debug
+                // thread::sleep(Duration::from_millis(500));
                 progress = (curr, total, format!("{}/{}", curr, total));
                 self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
@@ -483,6 +483,8 @@ impl App {
                 );
                 let res = cmd(&c);
                 self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                // //debug
+                // thread::sleep(Duration::from_millis(500));
                 progress = (curr, total, format!("{}/{}", curr, total));
                 self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
@@ -496,6 +498,14 @@ impl App {
                     true, 
                     true
                 );
+                if self.window.is_some() {
+                    // find DSP device on RPL MTL series CPU and remove 
+                    // then re-scan for Intel SST OED
+                    self.remove_dsp();
+                    let info = "刪除完成\n請在Device Manager中確認driver已刪除";
+                    let data = (true, info.to_owned());
+                    self.post_message(Window::APP_POPUP_INFO, data);
+                }
             },
             false => {
                 self.log(
