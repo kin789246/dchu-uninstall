@@ -15,6 +15,7 @@ use windows::Win32::{
     System::{
         LibraryLoader::*,
         DataExchange::COPYDATASTRUCT,
+        SystemServices::*,
     },
     Graphics::Gdi::*,
 };
@@ -50,6 +51,7 @@ pub struct Window {
     local: StrResource,
     width: u32,
     height: u32,
+    removing: bool,
 }
 
 impl Window {
@@ -57,6 +59,7 @@ impl Window {
     pub const APP_UPDATE_PROGRESS: u32 = WM_USER + 2;
     pub const APP_CONFIRM: u32 = WM_USER + 3;
     pub const APP_POPUP_INFO: u32 = WM_USER + 4;
+    pub const CTRL_EN_DIS: u32 = WM_USER + 5;
     const ID_BTN_PATH: usize = 1;
     const ID_BTN_REMOVE: usize = 2;
     const ID_TEXTBOX_RESULT: usize = 3;
@@ -64,7 +67,8 @@ impl Window {
     const ID_PROGRESS_BAR: usize = 5;
     const ID_PROGRESS_TXT: usize = 6;
     const BTN_WIDTH: f32 = 80.0;
-    const ONELINE_HEIGHT: f32 = 30.0;
+    const PROGRESS_TXT_WIDTH: f32 = 80.0;
+    const ONELINE_HEIGHT: f32 = 24.0;
     const PADDING: f32 = 5.0;
 
     pub fn new(title: &str, width: u32, height: u32, app: App) -> Result<Self> {
@@ -176,6 +180,10 @@ impl Window {
 
                     LRESULT(0)
                 },
+                WM_CLOSE => {
+                    self.on_wm_close();
+                    LRESULT(0)
+                }
                 WM_DESTROY => {
                     PostQuitMessage(0);
                     LRESULT(0)
@@ -214,8 +222,42 @@ impl Window {
                     self.on_popup_info(wparam);
                     LRESULT(0)
                 },
+                Self::CTRL_EN_DIS => {
+                    self.on_ctrl_en_dis(wparam);
+                    LRESULT(0)
+                },
                 _ => DefWindowProcW(self.main, message, wparam, lparam),
             }
+        }
+    }
+
+    fn on_wm_close(&self) {
+        unsafe {
+            if self.removing {
+                let question = str_to_hstring("Inf檔案移除中, 確定要關閉程式嗎?");
+                match pop_yesno(self.main, &question) {
+                    IDYES => {
+                        let _ = DestroyWindow(self.main);
+                    },
+                    _ => {}
+                }
+            }
+            else {
+                let _ = DestroyWindow(self.main); 
+            }
+        }
+    }
+
+    fn on_ctrl_en_dis(&mut self, wparam: WPARAM) {
+        unsafe {
+            // Get COPYDATASTRUCT from WPARAM
+            let cds = &*(wparam.0 as *const COPYDATASTRUCT);
+            // Get MyData from COPYDATASTRUCT
+            let enable_ctrl = &*(cds.lpData as *const bool);
+            // Handle the message from worker thread
+            // enable disable the remove button
+            self.enable_window(Self::ID_BTN_REMOVE as u32, *enable_ctrl);
+            self.removing = !*enable_ctrl;
         }
     }
 
@@ -224,14 +266,10 @@ impl Window {
             // Get COPYDATASTRUCT from WPARAM
             let cds = &*(wparam.0 as *const COPYDATASTRUCT);
             // Get MyData from COPYDATASTRUCT
-            let message = &*(cds.lpData as *const (bool, String));
+            let message = &*(cds.lpData as *const String);
             // Handle the message from worker thread
-            let question = HSTRING::from(&message.1);
+            let question = HSTRING::from(message);
             pop_info(self.main, &question);
-            // enable remove button
-            if message.0 {
-                self.enable_window(Self::ID_BTN_REMOVE as u32, true);
-            }
         }
     }
 
@@ -249,7 +287,6 @@ impl Window {
     fn on_remove_btn(&self) {
         let app = Arc::new(Mutex::new(self.app.clone()));
         App::remove_btn_click(app);
-        self.enable_window(Self::ID_BTN_REMOVE as u32, false);
     }
 
     fn enable_window(&self, id: u32, enable: bool) {
@@ -385,7 +422,8 @@ impl Window {
                     WS_VISIBLE.0 | 
                     WS_CHILD.0 | 
                     WS_BORDER.0 |
-                    ES_AUTOHSCROLL as u32
+                    ES_AUTOHSCROLL as u32 |
+                    SS_CENTERIMAGE.0
                 ),
                 path_tb_rect.X as i32,
                 path_tb_rect.Y as i32,
@@ -401,7 +439,7 @@ impl Window {
             let progress_bar_rect = Rect {
                 X: Self::PADDING, 
                 Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
-                Width: self.width as f32 - Self::PADDING * 2.0, 
+                Width: self.width as f32 - Self::PADDING * 2.0 - Self::PROGRESS_TXT_WIDTH, 
                 Height: Self::ONELINE_HEIGHT 
             };
             self.controls.insert(Self::ID_PROGRESS_BAR, progress_bar_rect);
@@ -425,9 +463,9 @@ impl Window {
 
             // Create progress txt
             let progress_txt_rect = Rect {
-                X: Self::PADDING, 
+                X: progress_bar_rect.X + progress_bar_rect.Width, 
                 Y: path_tb_rect.Y + Self::ONELINE_HEIGHT + Self::PADDING, 
-                Width: self.width as f32 - Self::PADDING * 2.0, 
+                Width: Self::PROGRESS_TXT_WIDTH, 
                 Height: Self::ONELINE_HEIGHT 
             };
             self.controls.insert(Self::ID_PROGRESS_TXT, progress_txt_rect);
@@ -435,7 +473,14 @@ impl Window {
                 WINDOW_EX_STYLE::default(),
                 w!("EDIT"),
                 w!(""),
-                WINDOW_STYLE( WS_CHILD.0 | WS_VISIBLE.0 | ES_READONLY as u32),
+                WINDOW_STYLE( 
+                    WS_CHILD.0 | 
+                    WS_VISIBLE.0 | 
+                    ES_READONLY as u32 |
+                    ES_CENTER as u32 |
+                    SS_CENTER.0 |
+                    SS_CENTERIMAGE.0
+                ),
                 progress_txt_rect.X as i32,
                 progress_txt_rect.Y as i32,
                 progress_txt_rect.Width as i32,
@@ -524,6 +569,17 @@ impl Window {
                 instance,
                 None,
             )?;
+
+            // // Set the window to be on top
+            // SetWindowPos(
+            //     self.progress_txt,
+            //     HWND_TOPMOST,
+            //     0,
+            //     0,
+            //     0,
+            //     0,
+            //     SWP_NOMOVE | SWP_NOSIZE,
+            // )?;
         }
         Ok(())
     }
@@ -538,10 +594,11 @@ impl Window {
         path_tb_rect.Width = width as f32 - Self::BTN_WIDTH * 2.0 - Self::PADDING * 4.0;
         // update progress bar
         let progress_bar_rect = self.controls.get_mut(&Self::ID_PROGRESS_BAR).unwrap();
-        progress_bar_rect.Width = width as f32 - Self::PADDING * 2.0; 
+        progress_bar_rect.Width = width as f32 - Self::PADDING * 2.0 - Self::PROGRESS_TXT_WIDTH; 
         // update progress txt
+        let progress_bar_rect = self.controls.get(&Self::ID_PROGRESS_BAR).cloned().unwrap();
         let progress_txt_rect = self.controls.get_mut(&Self::ID_PROGRESS_TXT).unwrap();
-        progress_txt_rect.Width = width as f32 - Self::PADDING * 2.0; 
+        progress_txt_rect.X = progress_bar_rect.X + progress_bar_rect.Width; 
         // update result textbox
         let path_tb_rect = self.controls.get(&Self::ID_TEXTBOX_PATH).cloned().unwrap();
         let rect = self.controls.get_mut(&Self::ID_TEXTBOX_RESULT).unwrap();

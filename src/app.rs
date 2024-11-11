@@ -144,6 +144,7 @@ impl App {
         let app = app.clone();
         thread::spawn(move || {
             let mut app = app.lock().unwrap();
+            app.post_message(Window::CTRL_EN_DIS, false);
             if app.infs.is_empty() {
                 app.load_infs();
             }
@@ -162,6 +163,7 @@ impl App {
                     app.log_gui(&e, true, true);
                 }
             }
+            app.post_message(Window::CTRL_EN_DIS, true);
         });
     }
 
@@ -197,18 +199,18 @@ impl App {
     }
 
     fn load_infs(&mut self) {
-        self.log_gui("enum drivers with pnputil.exe", true, true);
-        if let Ok(r) = cmd("pnputil /enum-drivers") {
-            self.drivers = r.to_string();
-        }
-        self.log_gui("enum devices with pnputil.exe", true, true);
-        if let Ok(r) = cmd("pnputil /enum-devices /relations").to_owned() {
-            self.devices = r.to_string();
-        }
+        // self.log_gui("enum drivers with pnputil.exe", true, true);
+        // if let Ok(r) = cmd("pnputil /enum-drivers") {
+        //     self.drivers = r.to_string();
+        // }
+        // self.log_gui("enum devices with pnputil.exe", true, true);
+        // if let Ok(r) = cmd("pnputil /enum-devices /relations").to_owned() {
+        //     self.devices = r.to_string();
+        // }
 
-        // // debug
-        // self.drivers = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\drivers-mtl-h.txt").unwrap();
-        // self.devices = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\relations-mtl-h.txt").unwrap();
+        // debug
+        self.drivers = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\drivers-mtl-h.txt").unwrap();
+        self.devices = Self::load_txt(r"C:\Users\iec130248\source\dchu-uninstall\template\relations-mtl-h.txt").unwrap();
 
         self.log_gui("parse driver raw list", true, true);
         self.parse_drivers();
@@ -422,7 +424,6 @@ impl App {
             },
             _ => {}
         }
-        // self.post_message(Window::APP_CONFIRM, question);
     }
 
     fn proceed_uninstall(
@@ -458,11 +459,11 @@ impl App {
             msg.push_str(&m);
             if self.opts.force {
                 self.log(&m, self.opts.save_log, true, true);
-                let c = format!("pnputil /delete-driver {} /uninstall", &inf);
-                let res = cmd(&c);
-                self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
-                // //debug
-                // thread::sleep(Duration::from_millis(500));
+                // let c = format!("pnputil /delete-driver {} /uninstall", &inf);
+                // let res = cmd(&c);
+                // self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                //debug
+                thread::sleep(Duration::from_millis(500));
                 progress = (curr, total, format!("{}/{}", curr, total));
                 self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
@@ -477,14 +478,14 @@ impl App {
             msg.push_str(&m);
             if self.opts.force {
                 self.log(&m, self.opts.save_log, true, true);
-                let c = format!(
-                    "pnputil /delete-driver {} /uninstall", 
-                    &inf.published_name
-                );
-                let res = cmd(&c);
-                self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
-                // //debug
-                // thread::sleep(Duration::from_millis(500));
+                // let c = format!(
+                //     "pnputil /delete-driver {} /uninstall", 
+                //     &inf.published_name
+                // );
+                // let res = cmd(&c);
+                // self.log(res.as_ref().unwrap(), self.opts.save_log, false, true);
+                //debug
+                thread::sleep(Duration::from_millis(300));
                 progress = (curr, total, format!("{}/{}", curr, total));
                 self.post_message(Window::APP_UPDATE_PROGRESS, progress);
             }
@@ -503,8 +504,7 @@ impl App {
                     // then re-scan for Intel SST OED
                     self.remove_dsp();
                     let info = "刪除完成\n請在Device Manager中確認driver已刪除";
-                    let data = (true, info.to_owned());
-                    self.post_message(Window::APP_POPUP_INFO, data);
+                    self.post_message(Window::APP_POPUP_INFO, info.to_owned());
                 }
             },
             false => {
